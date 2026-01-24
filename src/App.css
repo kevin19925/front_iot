@@ -207,6 +207,17 @@ input, textarea, [contenteditable] {
   }
 }
 
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .error-banner {
   background: #F44336;
   color: white;
