@@ -2,16 +2,55 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="description" content="Dashboard en tiempo real para sistema de bebedero inteligente IoT" />
-    <meta name="theme-color" content="#4CAF50" />
+    
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#1a1a1a" />
+    <meta name="msapplication-navbutton-color" content="#1a1a1a" />
+    
+    <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Bebedero IoT" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-startup-image" href="/icon-512.png" />
+    
+    <!-- Android PWA -->
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/png" href="/icon-192.png" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
-    <title>Bebedero IoT - Dashboard</title>
+    
+    <!-- Prevents phone number detection -->
+    <meta name="format-detection" content="telephone=no" />
+    
+    <title>Bebedero IoT</title>
+    
+    <style>
+      /* Estilos para que se vea como app nativa */
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow-x: hidden;
+        /* Safe area para iPhone con notch */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+      
+      /* Ocultar barras del navegador en móvil */
+      @media (display-mode: standalone) {
+        body {
+          /* Se ve como app nativa */
+        }
+      }
+      
+      /* Prevenir zoom en doble tap */
+      * {
+        touch-action: manipulation;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

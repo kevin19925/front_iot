@@ -7,6 +7,7 @@ let datosAnteriores = null;
 
 /**
  * Solicita permiso para mostrar notificaciones
+ * Mejorado para móviles
  */
 export const solicitarPermiso = async () => {
   if (!('Notification' in window)) {
@@ -14,53 +15,119 @@ export const solicitarPermiso = async () => {
     return false;
   }
 
+  // Si ya tiene permiso, actualizar estado
   if (Notification.permission === 'granted') {
     permisoConcedido = true;
     return true;
   }
 
-  if (Notification.permission !== 'denied') {
-    const permiso = await Notification.requestPermission();
-    permisoConcedido = permiso === 'granted';
-    return permisoConcedido;
+  // Si está denegado, no intentar de nuevo (evitar spam)
+  if (Notification.permission === 'denied') {
+    console.warn('Permisos de notificación denegados por el usuario');
+    return false;
   }
 
-  return false;
+  // Solicitar permiso (solo funciona en respuesta a una acción del usuario)
+  try {
+    const permiso = await Notification.requestPermission();
+    permisoConcedido = permiso === 'granted';
+    
+    if (permisoConcedido) {
+      console.log('✅ Permisos de notificación concedidos');
+      // Probar que funciona mostrando una notificación de bienvenida
+      setTimeout(() => {
+        mostrarNotificacion('🔔 Notificaciones Activadas', {
+          body: 'Recibirás alertas sobre eventos importantes del bebedero.',
+          icon: '✅',
+          tag: 'notificaciones-activadas',
+          silent: true, // No hacer sonido en la primera
+        });
+      }, 500);
+    }
+    
+    return permisoConcedido;
+  } catch (error) {
+    console.error('Error al solicitar permisos:', error);
+    return false;
+  }
 };
 
 /**
  * Muestra una notificación
+ * Optimizado para móviles con vibración y mejor manejo
  * @param {string} titulo - Título de la notificación
  * @param {object} opciones - Opciones de la notificación
  */
 export const mostrarNotificacion = (titulo, opciones = {}) => {
-  if (!permisoConcedido && Notification.permission !== 'granted') {
-    return;
+  // Verificar permisos
+  if (Notification.permission !== 'granted') {
+    if (!permisoConcedido) {
+      console.warn('Permisos de notificación no concedidos');
+      return;
+    }
+  }
+
+  // Vibración para móviles (si está disponible)
+  if ('vibrate' in navigator && opciones.vibrate !== false) {
+    const vibracion = opciones.vibrate || [200, 100, 200]; // Patrón de vibración
+    navigator.vibrate(vibracion);
   }
 
   const opcionesDefault = {
-    icon: '/favicon.ico', // Puedes cambiar esto por una imagen
-    badge: '/favicon.ico',
+    icon: '/icon-192.png', // Icono de la app
+    badge: '/icon-192.png',
     tag: 'bebedero-iot', // Evita notificaciones duplicadas
     requireInteraction: false,
+    silent: false, // Permitir sonido
+    timestamp: Date.now(),
+    // Opciones específicas para móviles
+    renotify: false, // No rennotificar si ya existe una con el mismo tag
     ...opciones,
   };
 
   try {
     const notificacion = new Notification(titulo, opcionesDefault);
     
-    // Cerrar automáticamente después de 5 segundos
+    // Cerrar automáticamente después de 7 segundos (más tiempo en móvil)
+    const tiempoCierre = opciones.requireInteraction ? 10000 : 7000;
     setTimeout(() => {
-      notificacion.close();
-    }, 5000);
+      if (notificacion) {
+        notificacion.close();
+      }
+    }, tiempoCierre);
 
     // Hacer clic en la notificación para enfocar la ventana
-    notificacion.onclick = () => {
+    notificacion.onclick = (event) => {
+      event.preventDefault();
       window.focus();
+      
+      // Si la app está en segundo plano, traerla al frente
+      if (document.hidden) {
+        window.focus();
+      }
+      
       notificacion.close();
+      
+      // Opcional: navegar a una URL específica
+      if (opciones.url) {
+        window.location.href = opciones.url;
+      }
     };
+
+    // Manejar errores de la notificación
+    notificacion.onerror = (error) => {
+      console.error('Error en la notificación:', error);
+    };
+
+    // Manejar cuando se cierra
+    notificacion.onclose = () => {
+      console.log('Notificación cerrada:', titulo);
+    };
+
+    return notificacion;
   } catch (error) {
     console.error('Error al mostrar notificación:', error);
+    return null;
   }
 };
 
@@ -88,6 +155,7 @@ export const analizarYNotificar = (datosActuales) => {
       body: `El nivel de agua está en ${sensoresActuales.nivel_agua}%. ¡Recarga el bebedero!`,
       icon: '💧',
       tag: 'nivel-bajo',
+      vibrate: [200, 100, 200], // Vibración media
     });
   }
 
@@ -98,6 +166,8 @@ export const analizarYNotificar = (datosActuales) => {
       icon: '🚨',
       tag: 'nivel-critico',
       requireInteraction: true, // Requiere interacción para crítico
+      vibrate: [300, 100, 300, 100, 300], // Vibración fuerte para crítico
+      silent: false, // Permitir sonido para crítico
     });
   }
 
@@ -111,6 +181,7 @@ export const analizarYNotificar = (datosActuales) => {
       body: `Se detectó un ${sensoresActuales.ultimo_animal.toLowerCase()} en el bebedero.`,
       icon: emoji,
       tag: `animal-${Date.now()}`, // Único para cada detección
+      vibrate: [100, 50, 100], // Vibración suave para detección
     });
   }
 
@@ -179,6 +250,33 @@ export const analizarYNotificar = (datosActuales) => {
 
   // Actualizar datos anteriores
   datosAnteriores = { ...datosActuales };
+};
+
+/**
+ * Verifica el estado de las notificaciones
+ * @returns {object} Estado de las notificaciones
+ */
+export const verificarEstadoNotificaciones = () => {
+  const estado = {
+    soportado: 'Notification' in window,
+    permiso: Notification.permission,
+    activo: permisoConcedido && Notification.permission === 'granted',
+    vibracion: 'vibrate' in navigator,
+  };
+  
+  return estado;
+};
+
+/**
+ * Re-solicita permisos si fueron denegados anteriormente
+ * Solo funciona si el usuario cambió la configuración del navegador
+ */
+export const verificarPermisos = () => {
+  if (Notification.permission === 'granted' && !permisoConcedido) {
+    permisoConcedido = true;
+    return true;
+  }
+  return permisoConcedido;
 };
 
 /**

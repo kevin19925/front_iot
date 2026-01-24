@@ -3,10 +3,13 @@
   "short_name": "Bebedero IoT",
   "description": "Dashboard en tiempo real para sistema de bebedero inteligente",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
   "background_color": "#1a1a1a",
-  "theme_color": "#4CAF50",
+  "theme_color": "#1a1a1a",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.png",

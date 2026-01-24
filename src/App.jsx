@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { obtenerEstado } from './services/api';
-import { solicitarPermiso, analizarYNotificar } from './services/notificaciones';
+import { solicitarPermiso, analizarYNotificar, verificarPermisos } from './services/notificaciones';
 import Dashboard from './components/Dashboard';
 import PanelControl from './components/PanelControl';
 import TablaHistorial from './components/TablaHistorial';
@@ -87,6 +87,44 @@ function App() {
     }
   }, [datos, notificacionesActivas]);
 
+  // Efecto para mantener notificaciones activas incluso en segundo plano
+  useEffect(() => {
+    // Detectar cuando la app va a segundo plano
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('📱 App en segundo plano - Notificaciones seguirán activas');
+      } else {
+        console.log('📱 App en primer plano');
+        // Actualizar datos inmediatamente al volver
+        actualizarDatos();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Detectar cuando la página se cierra (para notificaciones persistentes)
+    const handleBeforeUnload = () => {
+      // Las notificaciones seguirán funcionando si la PWA está instalada
+      console.log('📱 Página cerrando - Notificaciones seguirán activas si PWA instalada');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Verificar permisos periódicamente (por si el usuario los cambió)
+    const intervaloPermisos = setInterval(() => {
+      const nuevoEstado = verificarPermisos();
+      if (nuevoEstado !== notificacionesActivas) {
+        setNotificacionesActivas(nuevoEstado);
+      }
+    }, 5000); // Verificar cada 5 segundos
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearInterval(intervaloPermisos);
+    };
+  }, [actualizarDatos, notificacionesActivas]);
+
   // Manejar comando enviado desde PanelControl
   const manejarComandoEnviado = useCallback((accion) => {
     console.log(`Comando ${accion} enviado, actualizando datos...`);
@@ -119,12 +157,36 @@ function App() {
                   const permiso = await solicitarPermiso();
                   setNotificacionesActivas(permiso);
                   if (permiso) {
-                    alert('✅ Notificaciones activadas. Recibirás alertas sobre eventos importantes.');
+                    // Mostrar mensaje más amigable
+                    const mensaje = document.createElement('div');
+                    mensaje.style.cssText = `
+                      position: fixed;
+                      top: 20px;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      background: #4CAF50;
+                      color: white;
+                      padding: 15px 25px;
+                      border-radius: 10px;
+                      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                      z-index: 10000;
+                      font-weight: bold;
+                    `;
+                    mensaje.textContent = '✅ Notificaciones activadas';
+                    document.body.appendChild(mensaje);
+                    setTimeout(() => mensaje.remove(), 3000);
+                  } else if (Notification.permission === 'denied') {
+                    alert('⚠️ Los permisos fueron denegados. Por favor, habilítalos manualmente en la configuración del navegador.');
                   }
                 }}
               >
                 Activar
               </button>
+            )}
+            {Notification.permission === 'denied' && (
+              <span style={{ fontSize: '0.75em', color: '#F44336', marginLeft: '10px' }}>
+                (Denegado - Activa en configuración)
+              </span>
             )}
           </div>
         </div>

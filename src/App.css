@@ -10,14 +10,41 @@ body {
   background-attachment: fixed;
   color: white;
   min-height: 100vh;
+  min-height: -webkit-fill-available; /* iOS Safari */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Safe area para iPhone con notch */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  /* Prevenir scroll horizontal */
+  overflow-x: hidden;
+  /* Prevenir selección de texto accidental */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Permitir selección en inputs y textos importantes */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .app {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 100vh;
+  min-height: -webkit-fill-available; /* iOS Safari */
+}
+
+/* Cuando está en modo standalone (app instalada) */
+@media (display-mode: standalone) {
+  .app {
+    /* Ajustes adicionales para modo app */
+    padding-top: max(20px, env(safe-area-inset-top));
+  }
 }
 
 .app-header {
@@ -291,6 +318,51 @@ body {
 @supports (-webkit-touch-callout: none) {
   body {
     touch-action: manipulation;
+  }
+}
+
+/* Ocultar barra de direcciones en móvil al hacer scroll */
+@media (max-width: 768px) {
+  html {
+    /* Ocultar barra de direcciones en Chrome móvil */
+    height: -webkit-fill-available;
+  }
+  
+  body {
+    /* Prevenir scroll bounce en iOS */
+    overscroll-behavior: none;
+    /* Altura completa en móvil */
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+  
+  .app {
+    /* Padding seguro para móviles */
+    padding: 15px;
+    padding-top: max(15px, env(safe-area-inset-top));
+    padding-bottom: max(15px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Estilos para modo standalone (app instalada) */
+@media (display-mode: standalone) {
+  .app-header {
+    /* Header más compacto en modo app */
+    padding: 20px 15px;
+    margin-bottom: 25px;
+  }
+  
+  .app-header h1 {
+    font-size: 2em;
+  }
+}
+
+/* Mejorar botones en móvil */
+@media (max-width: 480px) {
+  button, .btn-control {
+    /* Botones más grandes para facilitar el toque */
+    min-height: 44px; /* Tamaño mínimo recomendado por Apple */
+    -webkit-tap-highlight-color: rgba(76, 175, 80, 0.3);
   }
 }
 
