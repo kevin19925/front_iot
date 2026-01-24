@@ -1,19 +1,38 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { obtenerEstado } from './services/api';
+import { Activity, Droplets, Thermometer, Zap, PawPrint, Power, Lightbulb, RefreshCw, Bell, BellOff, Download, Smartphone } from 'lucide-react';
+import { obtenerEstado, enviarComando } from './services/api';
 import { solicitarPermiso, analizarYNotificar, verificarPermisos } from './services/notificaciones';
-import Dashboard from './components/Dashboard';
-import PanelControl from './components/PanelControl';
 import TablaHistorial from './components/TablaHistorial';
 import Tabs from './components/Tabs';
 import './App.css';
 
+const API_URL = "https://proyecto-iot-fdl2.onrender.com/api";
+
 function App() {
-  const [datos, setDatos] = useState(null);
+  const [datos, setDatos] = useState({
+    sensores: {
+      nivel_agua: 0,
+      temperatura: 0,
+      bomba_estado_real: false,
+      luz: 0,
+      ultimo_animal: "Cargando..."
+    },
+    control: { 
+      modo: "AUTO",
+      modo_bomba: "AUTO", 
+      modo_luz: "AUTO" 
+    },
+    ultima_actualizacion: "--"
+  });
+
   const [historial, setHistorial] = useState([]);
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const [conectado, setConectado] = useState(false);
   const [notificacionesActivas, setNotificacionesActivas] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [mostrarBotonInstalar, setMostrarBotonInstalar] = useState(false);
 
   // Función para agregar datos al historial
   const agregarAlHistorial = useCallback((nuevosDatos) => {
@@ -29,125 +48,280 @@ function App() {
 
     setHistorial((prev) => {
       const nuevoHistorial = [registro, ...prev];
-      // Limitar a los últimos 20 registros
       return nuevoHistorial.slice(0, 20);
     });
   }, []);
 
-  // Función para obtener datos del servidor
-  const actualizarDatos = useCallback(async () => {
+  // 1. LEER DATOS (Polling)
+  const obtenerDatos = async () => {
     try {
-      const nuevosDatos = await obtenerEstado();
-      setDatos(nuevosDatos);
+      const json = await obtenerEstado();
+      setDatos(json);
       setConectado(true);
       setError(null);
-      
-      // Agregar al historial
-      agregarAlHistorial(nuevosDatos);
+      agregarAlHistorial(json);
     } catch (err) {
-      console.error('Error al obtener datos:', err);
+      console.error("Error:", err);
       setError(err.message);
       setConectado(false);
     }
+  };
+
+  useEffect(() => {
+    obtenerDatos();
+    const intervalo = setInterval(obtenerDatos, 1000);
+    return () => clearInterval(intervalo);
   }, [agregarAlHistorial]);
 
-  // Efecto para solicitar permiso de notificaciones al cargar
+  // Efecto para solicitar permiso de notificaciones
   useEffect(() => {
     const inicializarNotificaciones = async () => {
       const permiso = await solicitarPermiso();
       setNotificacionesActivas(permiso);
-      
-      if (!permiso && Notification.permission === 'default') {
-        // Mostrar mensaje informativo si el usuario aún no ha decidido
-        console.log('Las notificaciones están desactivadas. Actívalas para recibir alertas.');
-      }
     };
-
     inicializarNotificaciones();
   }, []);
 
-  // Efecto para actualización automática cada 1 segundo
-  useEffect(() => {
-    // Primera carga inmediata
-    actualizarDatos();
-
-    // Configurar intervalo para actualizar cada 1 segundo
-    const intervalo = setInterval(() => {
-      actualizarDatos();
-    }, 1000);
-
-    // Limpiar intervalo al desmontar
-    return () => clearInterval(intervalo);
-  }, [actualizarDatos]);
-
   // Efecto para analizar y notificar cambios
   useEffect(() => {
-    if (datos && notificacionesActivas) {
+    if (datos && notificacionesActivas && datos.sensores) {
       analizarYNotificar(datos);
     }
   }, [datos, notificacionesActivas]);
 
-  // Efecto para mantener notificaciones activas incluso en segundo plano
+  // Verificar permisos periódicamente
   useEffect(() => {
-    // Detectar cuando la app va a segundo plano
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        console.log('📱 App en segundo plano - Notificaciones seguirán activas');
-      } else {
-        console.log('📱 App en primer plano');
-        // Actualizar datos inmediatamente al volver
-        actualizarDatos();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Detectar cuando la página se cierra (para notificaciones persistentes)
-    const handleBeforeUnload = () => {
-      // Las notificaciones seguirán funcionando si la PWA está instalada
-      console.log('📱 Página cerrando - Notificaciones seguirán activas si PWA instalada');
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    // Verificar permisos periódicamente (por si el usuario los cambió)
     const intervaloPermisos = setInterval(() => {
       const nuevoEstado = verificarPermisos();
       if (nuevoEstado !== notificacionesActivas) {
         setNotificacionesActivas(nuevoEstado);
       }
-    }, 5000); // Verificar cada 5 segundos
+    }, 5000);
+    return () => clearInterval(intervaloPermisos);
+  }, [notificacionesActivas]);
+
+  // Detectar si la PWA puede instalarse
+  useEffect(() => {
+    // Verificar si ya está instalada
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isStandalone) {
+      setMostrarBotonInstalar(false);
+      return;
+    }
+
+    // Para Android/Chrome - capturar el evento beforeinstallprompt
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setMostrarBotonInstalar(true);
+    };
+
+    // Para iOS - siempre mostrar el botón con instrucciones
+    if (isIOS) {
+      setMostrarBotonInstalar(true);
+    } else {
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      clearInterval(intervaloPermisos);
+      if (!isIOS) {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      }
     };
-  }, [actualizarDatos, notificacionesActivas]);
+  }, []);
 
-  // Manejar comando enviado desde PanelControl
-  const manejarComandoEnviado = useCallback((accion) => {
-    console.log(`Comando ${accion} enviado, actualizando datos...`);
-    // Esperar un momento y luego actualizar para ver el cambio
-    setTimeout(() => {
-      actualizarDatos();
-    }, 500);
-  }, [actualizarDatos]);
+  // Función para instalar la PWA
+  const instalarPWA = async () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      // Mostrar instrucciones para iOS
+      alert('Para instalar en iOS:\n\n1. Toca el botón de compartir (□↑)\n2. Selecciona "Agregar a pantalla de inicio"\n3. Toca "Agregar"');
+    } else if (deferredPrompt) {
+      // Mostrar el prompt de instalación
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        console.log('✅ Usuario aceptó instalar la PWA');
+        setMostrarBotonInstalar(false);
+      } else {
+        console.log('❌ Usuario rechazó instalar la PWA');
+      }
+      
+      setDeferredPrompt(null);
+    }
+  };
+
+  // 2. FUNCIÓN ÚNICA DE CONTROL
+  const enviarComandoUnificado = async (accion) => {
+    if (cargando) return;
+    setCargando(true);
+    try {
+      await enviarComando(accion);
+      setTimeout(obtenerDatos, 300);
+    } catch (error) {
+      alert("Error enviando comando: " + error.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Estilos rápidos mejorados
+  const btnStyle = (color, activo = false) => ({
+    flex: 1, 
+    background: activo 
+      ? `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)` 
+      : 'linear-gradient(135deg, #444 0%, #333 100%)', 
+    border: activo ? `2px solid ${color}` : '2px solid #555', 
+    padding: '14px 16px', 
+    borderRadius: '10px', 
+    color: 'white', 
+    fontWeight: '700', 
+    fontSize: '0.95em',
+    cursor: cargando ? 'not-allowed' : 'pointer',
+    opacity: cargando ? 0.6 : 1,
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: '8px',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: activo 
+      ? `0 4px 15px ${color}60, 0 0 0 1px ${color}40` 
+      : '0 2px 8px rgba(0, 0, 0, 0.3)',
+    transform: activo ? 'scale(1.05)' : 'scale(1)',
+    minHeight: '48px' // Tamaño táctil mínimo para móviles
+  });
+
+  // Componente Card mejorado
+  const Card = ({ titulo, icono, valor, color = '#fff' }) => (
+    <div 
+      className="sensor-card"
+      style={{ 
+        background: 'linear-gradient(135deg, rgba(45, 45, 45, 0.95) 0%, rgba(35, 35, 35, 0.95) 100%)',
+        backdropFilter: 'blur(10px)',
+        padding: '20px', 
+        borderRadius: '12px', 
+        textAlign: 'center', 
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+        e.currentTarget.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.5)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0) scale(1)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+      }}
+    >
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        marginBottom: '10px',
+        filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+      }}>
+        {icono}
+      </div>
+      <div style={{ 
+        color: '#bbb', 
+        fontSize: '0.75em', 
+        textTransform: 'uppercase',
+        letterSpacing: '1px',
+        marginBottom: '8px'
+      }}>
+        {titulo}
+      </div>
+      <div style={{ 
+        fontSize: '1.8em', 
+        fontWeight: '700', 
+        color,
+        textShadow: `0 2px 8px ${color}40`
+      }}>
+        {valor}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>💧 Bebedero Inteligente IoT</h1>
-        <div className="header-status">
-          <div className="status-indicator">
-            <span className={`status-dot ${conectado ? 'status-online' : 'status-offline'}`}></span>
-            <span>{conectado ? 'Conectado' : 'Desconectado'}</span>
+    <div className="app" style={{ 
+      minHeight: '100vh', 
+      minHeight: '-webkit-fill-available',
+      backgroundColor: '#121212', 
+      color: 'white', 
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', 
+      padding: '20px',
+      paddingTop: 'max(20px, env(safe-area-inset-top))',
+      paddingBottom: 'max(20px, env(safe-area-inset-bottom))'
+    }}>
+      
+      {/* HEADER */}
+      <header className="app-header" style={{ 
+        textAlign: 'center', 
+        marginBottom: '30px',
+        background: 'linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(45, 45, 45, 0.95) 100%)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '20px',
+        padding: '25px 20px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+      }}>
+        <h1 style={{ 
+          color: '#4CAF50', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          gap: '10px', 
+          alignItems: 'center',
+          fontSize: 'clamp(1.5em, 4vw, 2.2em)',
+          fontWeight: '700',
+          marginBottom: '15px'
+        }}>
+          <Activity size={28} /> PANEL DE CONTROL IOT
+        </h1>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          gap: '15px', 
+          marginTop: '10px', 
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          <div style={{ 
+            color: conectado ? '#4CAF50' : '#F44336', 
+            fontSize: '0.9em', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px',
+            padding: '8px 15px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: '20px'
+          }}>
+            <span style={{ 
+              width: '10px', 
+              height: '10px', 
+              borderRadius: '50%', 
+              backgroundColor: conectado ? '#4CAF50' : '#F44336',
+              display: 'inline-block',
+              animation: conectado ? 'blink 1s infinite' : 'none',
+              boxShadow: conectado ? '0 0 10px rgba(76, 175, 80, 0.5)' : 'none'
+            }}></span>
+            {conectado ? 'Conectado' : 'Desconectado'}
           </div>
-          <div className="notification-status">
-            <span className={`notification-icon ${notificacionesActivas ? 'notification-on' : 'notification-off'}`}>
-              {notificacionesActivas ? '🔔' : '🔕'}
-            </span>
-            <span className="notification-text">
+          <div style={{ 
+            color: '#888', 
+            fontSize: '0.9em', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px',
+            padding: '8px 15px',
+            background: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: '20px'
+          }}>
+            {notificacionesActivas ? <Bell size={16} color="#4CAF50" /> : <BellOff size={16} color="#888" />}
+            <span style={{ fontSize: '0.85em' }}>
               {notificacionesActivas ? 'Notificaciones ON' : 'Notificaciones OFF'}
             </span>
             {!notificacionesActivas && Notification.permission !== 'denied' && (
@@ -156,39 +330,62 @@ function App() {
                 onClick={async () => {
                   const permiso = await solicitarPermiso();
                   setNotificacionesActivas(permiso);
-                  if (permiso) {
-                    // Mostrar mensaje más amigable
-                    const mensaje = document.createElement('div');
-                    mensaje.style.cssText = `
-                      position: fixed;
-                      top: 20px;
-                      left: 50%;
-                      transform: translateX(-50%);
-                      background: #4CAF50;
-                      color: white;
-                      padding: 15px 25px;
-                      border-radius: 10px;
-                      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                      z-index: 10000;
-                      font-weight: bold;
-                    `;
-                    mensaje.textContent = '✅ Notificaciones activadas';
-                    document.body.appendChild(mensaje);
-                    setTimeout(() => mensaje.remove(), 3000);
-                  } else if (Notification.permission === 'denied') {
-                    alert('⚠️ Los permisos fueron denegados. Por favor, habilítalos manualmente en la configuración del navegador.');
-                  }
+                }}
+                style={{ 
+                  marginLeft: '5px', 
+                  padding: '5px 12px', 
+                  fontSize: '0.8em',
+                  background: '#4CAF50',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontWeight: '600'
                 }}
               >
                 Activar
               </button>
             )}
-            {Notification.permission === 'denied' && (
-              <span style={{ fontSize: '0.75em', color: '#F44336', marginLeft: '10px' }}>
-                (Denegado - Activa en configuración)
-              </span>
-            )}
           </div>
+          
+          {/* Botón de Instalar PWA */}
+          {mostrarBotonInstalar && (
+            <div style={{ 
+              marginTop: '15px',
+              display: 'flex',
+              justifyContent: 'center'
+            }}>
+              <button
+                onClick={instalarPWA}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 20px',
+                  background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+                  border: 'none',
+                  borderRadius: '25px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                  fontSize: '0.95em',
+                  boxShadow: '0 4px 15px rgba(76, 175, 80, 0.4)',
+                  transition: 'all 0.3s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.4)';
+                }}
+              >
+                <Smartphone size={18} />
+                Instalar App
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -198,30 +395,202 @@ function App() {
         </div>
       )}
 
-      <main className="app-main">
-        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
-        
-        {activeTab === 'dashboard' && (
-          <>
-            <Dashboard datos={datos} />
-            <PanelControl 
-              modoActual={datos?.control?.modo || 'AUTO'}
-              modoLuzActual={datos?.control?.modo_luz || 'AUTO'}
-              onComandoEnviado={manejarComandoEnviado}
+      {activeTab === 'dashboard' && (
+        <>
+          {/* TARJETAS DE SENSORES */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+            gap: '15px', 
+            maxWidth: '800px', 
+            margin: '0 auto 30px' 
+          }}>
+            <Card 
+              titulo="Nivel Agua" 
+              icono={<Droplets color="#00BFFF" size={28}/>} 
+              valor={`${datos.sensores.nivel_agua}%`}
+              color={datos.sensores.nivel_agua > 50 ? '#4CAF50' : datos.sensores.nivel_agua > 20 ? '#FF9800' : '#F44336'}
             />
-          </>
-        )}
-        
-        {activeTab === 'historial' && (
-          <TablaHistorial historial={historial} />
-        )}
-      </main>
+            <Card 
+              titulo="Temperatura" 
+              icono={<Thermometer color="#FF6347" size={28}/>} 
+              valor={`${datos.sensores.temperatura}°C`}
+              color="#FF6347"
+            />
+            <Card 
+              titulo="Luz (LDR)" 
+              icono={<Lightbulb color="#FFD700" size={28}/>} 
+              valor={datos.sensores.luz}
+              color="#FFD700"
+            />
+            <Card 
+              titulo="Detección" 
+              icono={<PawPrint color="#DA70D6" size={28}/>} 
+              valor={datos.sensores.ultimo_animal}
+              color="#DA70D6"
+            />
+          </div>
 
-      <footer className="app-footer">
-        <p>Actualización automática cada 1 segundo</p>
+          {/* --- PANELES DE CONTROL --- */}
+          <div style={{ 
+            maxWidth: '800px', 
+            margin: '0 auto', 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: '20px',
+            marginBottom: '30px'
+          }}>
+            
+            {/* PANEL BOMBA */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(25, 25, 25, 0.95) 100%)',
+              backdropFilter: 'blur(10px)',
+              padding: '25px', 
+              borderRadius: '16px', 
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+            }}>
+              <h3 style={{ 
+                color: '#00BFFF', 
+                borderBottom: '2px solid rgba(0, 191, 255, 0.3)', 
+                paddingBottom: '12px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px',
+                fontSize: '1.2em',
+                fontWeight: '700',
+                marginBottom: '15px'
+              }}>
+                <Droplets size={24} /> BOMBA DE AGUA
+              </h3>
+              <p style={{ 
+                color: '#aaa', 
+                fontSize: '0.9em', 
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                Estado: <strong style={{ 
+                  color: '#fff',
+                  background: 'rgba(0, 191, 255, 0.2)',
+                  padding: '4px 12px',
+                  borderRadius: '6px'
+                }}>
+                  {datos.control.modo_bomba || datos.control.modo || 'AUTO'}
+                </strong>
+              </p>
+              
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button 
+                  style={btnStyle('#2E7D32', datos.control.modo_bomba === 'MANUAL_ON' || datos.control.modo === 'MANUAL_ON')} 
+                  onClick={() => enviarComandoUnificado("BOMBA_ON")}
+                  disabled={cargando}
+                >
+                  <Power size={18}/> ON
+                </button>
+                <button 
+                  style={btnStyle('#C62828', datos.control.modo_bomba === 'MANUAL_OFF' || datos.control.modo === 'MANUAL_OFF')} 
+                  onClick={() => enviarComandoUnificado("BOMBA_OFF")}
+                  disabled={cargando}
+                >
+                  <Power size={18}/> OFF
+                </button>
+                <button 
+                  style={btnStyle('#1565C0', datos.control.modo_bomba === 'AUTO' || datos.control.modo === 'AUTO')} 
+                  onClick={() => enviarComandoUnificado("BOMBA_AUTO")}
+                  disabled={cargando}
+                >
+                  <RefreshCw size={18}/> AUTO
+                </button>
+              </div>
+            </div>
+
+            {/* PANEL LUZ */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(25, 25, 25, 0.95) 100%)',
+              backdropFilter: 'blur(10px)',
+              padding: '25px', 
+              borderRadius: '16px', 
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)'
+            }}>
+              <h3 style={{ 
+                color: '#FFD700', 
+                borderBottom: '2px solid rgba(255, 215, 0, 0.3)', 
+                paddingBottom: '12px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px',
+                fontSize: '1.2em',
+                fontWeight: '700',
+                marginBottom: '15px'
+              }}>
+                <Lightbulb size={24} /> ILUMINACIÓN
+              </h3>
+              <p style={{ 
+                color: '#aaa', 
+                fontSize: '0.9em', 
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                Estado: <strong style={{ 
+                  color: '#fff',
+                  background: 'rgba(255, 215, 0, 0.2)',
+                  padding: '4px 12px',
+                  borderRadius: '6px'
+                }}>
+                  {datos.control.modo_luz || 'AUTO'}
+                </strong>
+              </p>
+              
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button 
+                  style={btnStyle('#F9A825', datos.control.modo_luz === 'MANUAL_ON')} 
+                  onClick={() => enviarComandoUnificado("LUZ_ON")}
+                  disabled={cargando}
+                >
+                  <Lightbulb size={18}/> ON
+                </button>
+                <button 
+                  style={btnStyle('#424242', datos.control.modo_luz === 'MANUAL_OFF')} 
+                  onClick={() => enviarComandoUnificado("LUZ_OFF")}
+                  disabled={cargando}
+                >
+                  <Lightbulb size={18}/> OFF
+                </button>
+                <button 
+                  style={btnStyle('#1565C0', datos.control.modo_luz === 'AUTO')} 
+                  onClick={() => enviarComandoUnificado("LUZ_AUTO")}
+                  disabled={cargando}
+                >
+                  <RefreshCw size={18}/> AUTO
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </>
+      )}
+
+      {activeTab === 'historial' && (
+        <TablaHistorial historial={historial} />
+      )}
+
+      <div style={{ marginTop: '30px' }}>
+        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
+
+      <footer className="app-footer" style={{ marginTop: '40px' }}>
+        <p style={{ marginBottom: '8px' }}>🔄 Actualización automática cada 1 segundo</p>
         {datos && (
-          <p className="ultima-actualizacion">
-            Última señal: {datos.ultima_actualizacion}
+          <p className="ultima-actualizacion" style={{ 
+            color: '#4CAF50',
+            fontWeight: '600'
+          }}>
+            ⏱️ Última señal: {datos.ultima_actualizacion}
           </p>
         )}
       </footer>
@@ -230,4 +599,3 @@ function App() {
 }
 
 export default App;
-
