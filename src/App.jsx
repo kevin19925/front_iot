@@ -471,7 +471,10 @@ function App() {
 
           {/* GAUGE RECIPIENTE - Visualización 3D */}
           <div style={{ maxWidth: '100%', width: '100%', margin: '0 auto 30px', padding: '0 10px' }}>
-            <GaugeRecipiente nivelPorcentaje={datos.sensores.nivel_agua || 0} />
+            <GaugeRecipiente 
+              nivelPorcentaje={datos.sensores.nivel_agua || 0} 
+              bombaActiva={datos.sensores.bomba_estado_real || false}
+            />
           </div>
 
           {/* --- PANELES DE CONTROL --- */}

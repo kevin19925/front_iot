@@ -12,19 +12,22 @@ const VOLUMEN_TOTAL_CM3 = ALTURA_RECIPIENTE * ANCHO_RECIPIENTE * LARGO_RECIPIENT
 // Convertir a litros (1 litro = 1000 cm³)
 const VOLUMEN_TOTAL_LITROS = VOLUMEN_TOTAL_CM3 / 1000;
 
-const GaugeRecipiente = ({ nivelPorcentaje }) => {
+const GaugeRecipiente = ({ nivelPorcentaje, bombaActiva = false }) => {
   // Calcular volumen actual en litros
   const volumenActualLitros = (VOLUMEN_TOTAL_LITROS * nivelPorcentaje) / 100;
   const alturaAgua = (ALTURA_RECIPIENTE * nivelPorcentaje) / 100; // Altura del agua en cm
 
-  // Color según el nivel
+  // Color del agua siempre azul
+  const colorAgua = '#00BFFF'; // Azul siempre
+  
+  // Color para indicadores (según nivel)
   const getColorNivel = (nivel) => {
     if (nivel > 50) return '#4CAF50'; // Verde
     if (nivel > 20) return '#FF9800'; // Naranja
     return '#F44336'; // Rojo
   };
 
-  const colorAgua = getColorNivel(nivelPorcentaje);
+  const colorIndicador = getColorNivel(nivelPorcentaje);
   
   // Mostrar burbujas solo si hay suficiente agua (>10%)
   const mostrarBurbujas = nivelPorcentaje > 10;
@@ -34,6 +37,20 @@ const GaugeRecipiente = ({ nivelPorcentaje }) => {
       <div className="gauge-header">
         <Droplets size={28} color={colorAgua} />
         <h3>Nivel de Agua del Recipiente</h3>
+        {bombaActiva && (
+          <span style={{ 
+            marginLeft: 'auto', 
+            color: '#4CAF50', 
+            fontSize: '0.9em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontWeight: '600',
+            animation: 'pulse 2s ease-in-out infinite'
+          }}>
+            🔵 Bomba activa
+          </span>
+        )}
       </div>
 
       <div className="gauge-content">
@@ -42,7 +59,7 @@ const GaugeRecipiente = ({ nivelPorcentaje }) => {
           <div className="recipiente-fondo">
             {/* Agua dentro del recipiente */}
             <div 
-              className="agua-nivel"
+              className={`agua-nivel ${bombaActiva ? 'bomba-activa' : 'bomba-inactiva'}`}
               style={{
                 height: `${nivelPorcentaje}%`,
                 backgroundColor: colorAgua,
