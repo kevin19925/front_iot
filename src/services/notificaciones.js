@@ -171,18 +171,31 @@ export const analizarYNotificar = (datosActuales) => {
     });
   }
 
-  // 3. Notificación: Animal detectado
+  // 3. Notificación: Animal detectado - Solo si hay suficiente agua
   if (
     sensoresActuales.ultimo_animal !== 'Ninguno' &&
     sensoresActuales.ultimo_animal !== sensoresAnteriores.ultimo_animal
   ) {
-    const emoji = sensoresActuales.ultimo_animal === 'Gato' ? '🐱' : '🐶';
-    mostrarNotificacion(`${emoji} ${sensoresActuales.ultimo_animal} Detectado`, {
-      body: `Se detectó un ${sensoresActuales.ultimo_animal.toLowerCase()} en el bebedero.`,
-      icon: emoji,
-      tag: `animal-${Date.now()}`, // Único para cada detección
-      vibrate: [100, 50, 100], // Vibración suave para detección
-    });
+    const animal = sensoresActuales.ultimo_animal;
+    const nivelAgua = sensoresActuales.nivel_agua;
+    const emoji = animal === 'Gato' ? '🐱' : '🐶';
+    
+    // Requisitos de agua por animal
+    const nivelRequerido = animal === 'Gato' ? 30 : 70; // Gato: 30%, Perro: 70%
+    
+    // Solo notificar si hay suficiente agua (Gato >= 30%, Perro >= 70%)
+    if (nivelAgua >= nivelRequerido) {
+      mostrarNotificacion(
+        `${emoji} ${animal} Detectado - Agua Suficiente`,
+        {
+          body: `✅ Se detectó un ${animal.toLowerCase()}. El nivel de agua (${nivelAgua}%) es suficiente (requiere ${nivelRequerido}%).`,
+          icon: emoji,
+          tag: `animal-${animal.toLowerCase()}-suficiente-${Date.now()}`,
+          vibrate: [100, 50, 100], // Vibración suave
+        }
+      );
+    }
+    // Si no hay suficiente agua, NO se muestra notificación
   }
 
   // 4. Notificación: Bomba encendida
@@ -224,7 +237,37 @@ export const analizarYNotificar = (datosActuales) => {
     });
   }
 
-  // 7. Notificación: Temperatura alta (> 30°C)
+  // 7. Notificación: Cambio de nivel de agua mientras hay animal detectado
+  // Solo notificar cuando el nivel sube y alcanza el mínimo requerido
+  if (
+    sensoresActuales.ultimo_animal !== 'Ninguno' &&
+    sensoresActuales.nivel_agua !== sensoresAnteriores.nivel_agua
+  ) {
+    const animal = sensoresActuales.ultimo_animal;
+    const nivelAgua = sensoresActuales.nivel_agua;
+    const nivelRequerido = animal === 'Gato' ? 30 : 70;
+    const emoji = animal === 'Gato' ? '🐱' : '🐶';
+    
+    // Solo notificar cuando el nivel sube y alcanza el mínimo requerido
+    const antesSuficiente = sensoresAnteriores.nivel_agua >= nivelRequerido;
+    const ahoraSuficiente = nivelAgua >= nivelRequerido;
+    
+    if (!antesSuficiente && ahoraSuficiente) {
+      // El nivel subió y ahora es suficiente
+      mostrarNotificacion(
+        `✅ Agua Suficiente para ${animal}`,
+        {
+          body: `El nivel de agua (${nivelAgua}%) ahora es suficiente para el ${animal.toLowerCase()} detectado (requiere ${nivelRequerido}%).`,
+          icon: emoji,
+          tag: `nivel-suficiente-${animal.toLowerCase()}-${Date.now()}`,
+          vibrate: [100, 50, 100],
+        }
+      );
+    }
+    // Si el nivel baja, NO se muestra notificación
+  }
+
+  // 8. Notificación: Temperatura alta (> 30°C)
   if (sensoresActuales.temperatura > 30 && sensoresAnteriores.temperatura <= 30) {
     mostrarNotificacion('🌡️ Temperatura Alta', {
       body: `La temperatura es de ${sensoresActuales.temperatura}°C. El agua puede estar caliente.`,
@@ -233,7 +276,7 @@ export const analizarYNotificar = (datosActuales) => {
     });
   }
 
-  // 8. Notificación: Cambio de modo de luz
+  // 9. Notificación: Cambio de modo de luz
   if (controlActual.modo_luz !== controlAnterior.modo_luz) {
     const modoLuzEmoji = {
       AUTO: '🔄',
