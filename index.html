@@ -26,28 +26,47 @@
     <title>Bebedero IoT</title>
     
     <style>
-      /* Estilos para que se vea como app nativa - FIX iOS */
-      html, body {
+      /* FIX CRÍTICO PARA iOS - Pantalla Negra */
+      html {
+        width: 100%;
+        height: 100%;
+        height: -webkit-fill-available; /* iOS Safari */
+        background-color: #121212 !important;
+        -webkit-text-size-adjust: 100%;
+      }
+      
+      body {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
         height: -webkit-fill-available; /* iOS Safari */
         overflow-x: hidden;
-        background-color: #121212; /* Fondo visible mientras carga */
+        background-color: #121212 !important; /* Fondo visible mientras carga */
         color: white;
+        position: fixed; /* Fix iOS - Evita scroll que causa pantalla negra */
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         /* Safe area para iPhone con notch */
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
+        -webkit-overflow-scrolling: touch;
       }
       
       #root {
         width: 100%;
-        min-height: 100%;
-        min-height: -webkit-fill-available; /* iOS Safari */
-        background-color: #121212;
+        height: 100%;
+        height: -webkit-fill-available; /* iOS Safari */
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+        background-color: #121212 !important;
+        position: relative;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
       
       /* Loading inicial para iOS */
@@ -66,8 +85,10 @@
       /* Ocultar barras del navegador en móvil */
       @media (display-mode: standalone) {
         body {
-          /* Se ve como app nativa - sin barras del navegador */
-          overflow: hidden;
+          position: fixed;
+          width: 100%;
+          height: 100%;
+          height: -webkit-fill-available;
         }
       }
       
@@ -79,7 +100,17 @@
       
       /* Fix para iOS - Asegurar que el contenido sea visible */
       body.loading {
-        background-color: #121212;
+        background-color: #121212 !important;
+      }
+      
+      /* Fix adicional para iOS Safari */
+      @supports (-webkit-touch-callout: none) {
+        body {
+          min-height: -webkit-fill-available;
+        }
+        #root {
+          min-height: -webkit-fill-available;
+        }
       }
     </style>
   </head>

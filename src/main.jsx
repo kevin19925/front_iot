@@ -9,8 +9,16 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
-// Limpiar contenido de carga inicial
+// Fix iOS - Limpiar contenido de carga inicial pero mantener fondo visible
+const loadingDiv = rootElement.querySelector('div');
+if (loadingDiv) {
+  loadingDiv.remove();
+}
 rootElement.innerHTML = '';
+
+// Asegurar que el body tenga fondo visible inmediatamente (fix pantalla negra iOS)
+document.body.style.backgroundColor = '#121212';
+document.body.style.color = 'white';
 
 // Registrar Service Worker para PWA (solo si no es iOS o si está instalado)
 if ('serviceWorker' in navigator) {
@@ -40,8 +48,21 @@ root.render(
   </React.StrictMode>
 );
 
-// Remover clase loading del body cuando React cargue
+// Fix iOS - Remover clase loading y asegurar visibilidad
 setTimeout(() => {
   document.body.classList.remove('loading');
+  document.body.style.backgroundColor = '#121212';
+  rootElement.style.backgroundColor = '#121212';
+  rootElement.style.opacity = '1';
+  rootElement.style.visibility = 'visible';
 }, 100);
+
+// Fix adicional para iOS - Forzar repintado
+if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+  setTimeout(() => {
+    document.body.style.display = 'none';
+    document.body.offsetHeight; // Trigger reflow
+    document.body.style.display = '';
+  }, 200);
+}
 

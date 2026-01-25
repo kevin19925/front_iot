@@ -6,7 +6,7 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  background: #121212; /* Fondo sólido primero para iOS */
+  background: #121212 !important; /* Fondo sólido primero para iOS - CRÍTICO */
   background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #0f0f0f 100%);
   background-attachment: fixed;
   color: white;
@@ -27,6 +27,8 @@ body {
   user-select: none;
   /* Fix iOS - Asegurar que el contenido sea visible */
   position: relative;
+  /* Fix adicional para iOS */
+  -webkit-overflow-scrolling: touch;
 }
 
 body.loading {
@@ -43,12 +45,17 @@ input, textarea, [contenteditable] {
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  min-height: 100vh;
-  min-height: -webkit-fill-available; /* iOS Safari */
+  min-height: -webkit-fill-available; /* iOS Safari - Primero para compatibilidad */
+  min-height: 100vh; /* Fallback para otros navegadores */
   width: 100%;
   background-color: #121212; /* Fondo visible en iOS */
   position: relative;
   z-index: 1;
+  /* Fix iOS - Asegurar visibilidad */
+  opacity: 1;
+  visibility: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Cuando está en modo standalone (app instalada) */

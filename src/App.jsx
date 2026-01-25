@@ -249,14 +249,15 @@ function App() {
 
   return (
     <div className="app" style={{ 
-      minHeight: '100vh', 
       minHeight: '-webkit-fill-available',
       backgroundColor: '#121212', 
       color: 'white', 
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', 
       padding: '20px',
       paddingTop: 'max(20px, env(safe-area-inset-top))',
-      paddingBottom: 'max(20px, env(safe-area-inset-bottom))'
+      paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
+      width: '100%',
+      position: 'relative'
     }}>
       
       {/* HEADER */}
