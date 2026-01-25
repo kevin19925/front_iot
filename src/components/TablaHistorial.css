@@ -259,18 +259,71 @@ tbody tr.fila-nueva {
   margin-top: 10px;
 }
 
-/* Responsive Tabla */
+/* Panel de Filtros Responsive */
 @media (max-width: 768px) {
+  .filtros-panel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 15px;
+  }
+  
+  .filtro-input,
+  .filtro-select {
+    padding: 10px 12px;
+    font-size: 0.85em;
+  }
+}
+
+@media (max-width: 480px) {
+  .filtros-panel {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .filtro-grupo label {
+    font-size: 0.8em;
+  }
+  
+  .filtro-input,
+  .filtro-select {
+    padding: 8px 10px;
+    font-size: 0.8em;
+  }
+}
+
+/* Responsive Tabla */
+@media (max-width: 1024px) {
+  table {
+    min-width: 700px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tabla-historial h2 {
+    font-size: 1.5em;
+  }
+  
   .tabla-container {
     border-radius: 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   table {
-    min-width: 500px;
+    min-width: 600px;
   }
 
   th, td {
     padding: 12px 15px;
+    font-size: 0.9em;
+  }
+  
+  .fecha-cell,
+  .hora-cell {
+    font-size: 0.85em;
+  }
+  
+  .litros-value {
     font-size: 0.9em;
   }
 
@@ -281,27 +334,57 @@ tbody tr.fila-nueva {
 }
 
 @media (max-width: 480px) {
+  .tabla-historial h2 {
+    font-size: 1.3em;
+    margin-bottom: 15px;
+  }
+  
   .tabla-container {
     border-radius: 12px;
   }
 
   table {
-    min-width: 400px;
+    min-width: 500px;
   }
 
   th {
     padding: 10px 12px;
     font-size: 0.75em;
+    letter-spacing: 1px;
   }
 
   td {
     padding: 10px 12px;
     font-size: 0.85em;
   }
+  
+  .fecha-cell,
+  .hora-cell {
+    font-size: 0.8em;
+  }
+  
+  .litros-value {
+    font-size: 0.85em;
+  }
 
   .nivel, .bomba, .evento-badge {
     font-size: 0.8em;
     padding: 4px 8px;
+  }
+  
+  .tabla-info {
+    font-size: 0.8em;
+  }
+}
+
+@media (max-width: 360px) {
+  table {
+    min-width: 450px;
+  }
+  
+  th, td {
+    padding: 8px 10px;
+    font-size: 0.8em;
   }
 }
 

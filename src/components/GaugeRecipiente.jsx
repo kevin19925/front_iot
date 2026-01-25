@@ -25,6 +25,9 @@ const GaugeRecipiente = ({ nivelPorcentaje }) => {
   };
 
   const colorAgua = getColorNivel(nivelPorcentaje);
+  
+  // Mostrar burbujas solo si hay suficiente agua (>10%)
+  const mostrarBurbujas = nivelPorcentaje > 10;
 
   return (
     <div className="gauge-recipiente-container">
@@ -47,10 +50,31 @@ const GaugeRecipiente = ({ nivelPorcentaje }) => {
                 transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
             >
-              {/* Efecto de ondas en el agua */}
-              <div className="onda-agua" style={{ animationDelay: '0s' }}></div>
-              <div className="onda-agua" style={{ animationDelay: '0.3s' }}></div>
-              <div className="onda-agua" style={{ animationDelay: '0.6s' }}></div>
+              {/* Capa base de agua con gradiente animado */}
+              <div className="agua-base"></div>
+              
+              {/* Múltiples capas de ondas para efecto realista */}
+              <div className="onda-agua onda-1" style={{ animationDelay: '0s' }}></div>
+              <div className="onda-agua onda-2" style={{ animationDelay: '0.5s' }}></div>
+              <div className="onda-agua onda-3" style={{ animationDelay: '1s' }}></div>
+              <div className="onda-agua onda-4" style={{ animationDelay: '1.5s' }}></div>
+              
+              {/* Reflejos y brillos que se mueven - Solo si hay agua */}
+              {nivelPorcentaje > 5 && (
+                <>
+                  <div className="reflejo-agua reflejo-1"></div>
+                  <div className="reflejo-agua reflejo-2"></div>
+                </>
+              )}
+              
+              {/* Partículas/burbujas flotantes - Solo si hay suficiente agua */}
+              {mostrarBurbujas && (
+                <>
+                  <div className="burbuja burbuja-1"></div>
+                  <div className="burbuja burbuja-2"></div>
+                  <div className="burbuja burbuja-3"></div>
+                </>
+              )}
             </div>
             
             {/* Marcas de nivel */}

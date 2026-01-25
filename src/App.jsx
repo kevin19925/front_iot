@@ -413,7 +413,7 @@ function App() {
       )}
 
       {/* TABS AL INICIO */}
-      <div style={{ marginBottom: '30px', maxWidth: '800px', margin: '0 auto 30px' }}>
+      <div style={{ marginBottom: '30px', maxWidth: '100%', width: '100%', margin: '0 auto 30px', padding: '0 10px' }}>
         <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
 
@@ -422,10 +422,12 @@ function App() {
           {/* TARJETAS DE SENSORES */}
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
             gap: '15px', 
-            maxWidth: '800px', 
-            margin: '0 auto 30px' 
+            maxWidth: '100%', 
+            width: '100%',
+            margin: '0 auto 30px',
+            padding: '0 10px'
           }}>
             <Card 
               titulo="Nivel Agua" 
@@ -468,18 +470,20 @@ function App() {
           </div>
 
           {/* GAUGE RECIPIENTE - Visualización 3D */}
-          <div style={{ maxWidth: '1200px', margin: '0 auto 30px' }}>
+          <div style={{ maxWidth: '100%', width: '100%', margin: '0 auto 30px', padding: '0 10px' }}>
             <GaugeRecipiente nivelPorcentaje={datos.sensores.nivel_agua || 0} />
           </div>
 
           {/* --- PANELES DE CONTROL --- */}
           <div style={{ 
-            maxWidth: '800px', 
+            maxWidth: '100%', 
+            width: '100%',
             margin: '0 auto', 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
             gap: '20px',
-            marginBottom: '30px'
+            marginBottom: '30px',
+            padding: '0 10px'
           }}>
             
             {/* PANEL BOMBA */}
