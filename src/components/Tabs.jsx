@@ -12,6 +12,13 @@ const Tabs = ({ activeTab, onTabChange }) => {
         <span className="tab-label">Dashboard</span>
       </button>
       <button
+        className={`tab ${activeTab === 'graficas' ? 'tab-active' : ''}`}
+        onClick={() => onTabChange('graficas')}
+      >
+        <span className="tab-icon">📈</span>
+        <span className="tab-label">Gráficas</span>
+      </button>
+      <button
         className={`tab ${activeTab === 'historial' ? 'tab-active' : ''}`}
         onClick={() => onTabChange('historial')}
       >

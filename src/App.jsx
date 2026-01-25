@@ -3,6 +3,7 @@ import { Activity, Droplets, Thermometer, Zap, PawPrint, Power, Lightbulb, Refre
 import { obtenerEstado, enviarComando } from './services/api';
 import { solicitarPermiso, analizarYNotificar, verificarPermisos } from './services/notificaciones';
 import TablaHistorial from './components/TablaHistorial';
+import Graficas from './components/Graficas';
 import Tabs from './components/Tabs';
 import './App.css';
 
@@ -395,6 +396,11 @@ function App() {
         </div>
       )}
 
+      {/* TABS AL INICIO */}
+      <div style={{ marginBottom: '30px', maxWidth: '800px', margin: '0 auto 30px' }}>
+        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
+
       {activeTab === 'dashboard' && (
         <>
           {/* TARJETAS DE SENSORES */}
@@ -705,13 +711,13 @@ function App() {
         </>
       )}
 
+      {activeTab === 'graficas' && (
+        <Graficas historial={historial} datosActuales={datos} />
+      )}
+
       {activeTab === 'historial' && (
         <TablaHistorial historial={historial} />
       )}
-
-      <div style={{ marginTop: '30px' }}>
-        <Tabs activeTab={activeTab} onTabChange={setActiveTab} />
-      </div>
 
       <footer className="app-footer" style={{ marginTop: '40px' }}>
         <p style={{ marginBottom: '8px' }}>🔄 Actualización automática cada 1 segundo</p>
