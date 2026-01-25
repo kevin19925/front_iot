@@ -2,6 +2,81 @@
   margin-bottom: 40px;
 }
 
+/* Panel de Filtros */
+.filtros-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(25, 25, 25, 0.95) 100%);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+}
+
+.filtro-grupo label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #aaa;
+  font-size: 0.85em;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.filtro-input,
+.filtro-select {
+  width: 100%;
+  padding: 12px 15px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+}
+
+.filtro-input:focus,
+.filtro-select:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+}
+
+.filtro-input::placeholder {
+  color: #666;
+}
+
+.sin-resultados {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-style: italic;
+}
+
+.fecha-cell,
+.hora-cell {
+  font-family: 'Courier New', monospace;
+  color: #4CAF50;
+  font-weight: 600;
+}
+
+.litros-cell {
+  font-weight: 600;
+}
+
+.litros-value {
+  color: #00BFFF;
+  font-family: 'Courier New', monospace;
+}
+
 .tabla-historial h2 {
   background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
   -webkit-background-clip: text;

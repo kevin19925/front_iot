@@ -3,11 +3,21 @@ import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Cartesia
 import { Droplets, Thermometer, Lightbulb } from 'lucide-react';
 import './Graficas.css';
 
+// Dimensiones del recipiente para calcular litros
+const ALTURA_RECIPIENTE = 6;
+const ANCHO_RECIPIENTE = 19.75;
+const LARGO_RECIPIENTE = 25;
+const VOLUMEN_TOTAL_LITROS = (ALTURA_RECIPIENTE * ANCHO_RECIPIENTE * LARGO_RECIPIENTE) / 1000;
+
 const Graficas = ({ historial, datosActuales }) => {
+  // Función para calcular litros
+  const calcularLitros = (porcentaje) => (VOLUMEN_TOTAL_LITROS * porcentaje) / 100;
+
   // Preparar datos para las gráficas (últimos 20 registros)
   const datosGrafica = historial.slice(0, 20).reverse().map((item, index) => ({
     tiempo: item.hora || `${index}`,
     nivel: item.nivel || 0,
+    litros: calcularLitros(item.nivel || 0),
     temperatura: item.temperatura || 0,
   }));
 
@@ -76,6 +86,16 @@ const Graficas = ({ historial, datosActuales }) => {
               fill="url(#colorNivel)"
               name="Nivel Agua (%)"
               strokeWidth={3}
+            />
+            <Area 
+              type="monotone" 
+              dataKey="litros" 
+              stroke="#00BFFF" 
+              fillOpacity={0.3} 
+              fill="url(#colorNivel)"
+              name="Litros (L)"
+              strokeWidth={2}
+              strokeDasharray="5 5"
             />
             <Area 
               type="monotone" 

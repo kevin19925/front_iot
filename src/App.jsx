@@ -4,6 +4,7 @@ import { obtenerEstado, enviarComando } from './services/api';
 import { solicitarPermiso, analizarYNotificar, verificarPermisos } from './services/notificaciones';
 import TablaHistorial from './components/TablaHistorial';
 import Graficas from './components/Graficas';
+import GaugeRecipiente from './components/GaugeRecipiente';
 import Tabs from './components/Tabs';
 import './App.css';
 
@@ -39,8 +40,22 @@ function App() {
   const agregarAlHistorial = useCallback((nuevosDatos) => {
     if (!nuevosDatos || !nuevosDatos.sensores) return;
 
+    const ahora = new Date();
+    const fecha = ahora.toLocaleDateString('es-ES', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+    const hora = ahora.toLocaleTimeString('es-ES', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+
     const registro = {
-      hora: nuevosDatos.ultima_actualizacion || new Date().toLocaleTimeString('es-ES'),
+      fecha: fecha,
+      hora: hora,
+      fechaHora: ahora.toISOString(), // Para ordenamiento
       nivel: nuevosDatos.sensores.nivel_agua || 0,
       temperatura: nuevosDatos.sensores.temperatura || 0,
       bomba: nuevosDatos.sensores.bomba_estado_real || false,
@@ -49,7 +64,7 @@ function App() {
 
     setHistorial((prev) => {
       const nuevoHistorial = [registro, ...prev];
-      return nuevoHistorial.slice(0, 20);
+      return nuevoHistorial.slice(0, 50); // Aumentar a 50 registros
     });
   }, []);
 
@@ -450,6 +465,11 @@ function App() {
               valor={datos.control.modo_luz === 'MANUAL_ON' ? "ON" : datos.control.modo_luz === 'MANUAL_OFF' ? "OFF" : "AUTO"}
               color={datos.control.modo_luz === 'MANUAL_ON' ? "#FFD700" : datos.control.modo_luz === 'MANUAL_OFF' ? "#666" : "#1565C0"}
             />
+          </div>
+
+          {/* GAUGE RECIPIENTE - Visualización 3D */}
+          <div style={{ maxWidth: '1200px', margin: '0 auto 30px' }}>
+            <GaugeRecipiente nivelPorcentaje={datos.sensores.nivel_agua || 0} />
           </div>
 
           {/* --- PANELES DE CONTROL --- */}
