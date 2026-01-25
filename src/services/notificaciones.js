@@ -186,9 +186,9 @@ export const analizarYNotificar = (datosActuales) => {
     // Solo notificar si hay suficiente agua (Gato >= 30%, Perro >= 70%)
     if (nivelAgua >= nivelRequerido) {
       mostrarNotificacion(
-        `${emoji} ${animal} Detectado - Agua Suficiente`,
+        `${emoji} ${animal} Detectado`,
         {
-          body: `✅ Se detectó un ${animal.toLowerCase()}. El nivel de agua (${nivelAgua}%) es suficiente (requiere ${nivelRequerido}%).`,
+          body: `✅ Agua suficiente para ${animal.toLowerCase()}. Nivel: ${nivelAgua}% (requiere ${nivelRequerido}%)`,
           icon: emoji,
           tag: `animal-${animal.toLowerCase()}-suficiente-${Date.now()}`,
           vibrate: [100, 50, 100], // Vibración suave
@@ -257,7 +257,7 @@ export const analizarYNotificar = (datosActuales) => {
       mostrarNotificacion(
         `✅ Agua Suficiente para ${animal}`,
         {
-          body: `El nivel de agua (${nivelAgua}%) ahora es suficiente para el ${animal.toLowerCase()} detectado (requiere ${nivelRequerido}%).`,
+          body: `Agua suficiente para ${animal.toLowerCase()}. Nivel: ${nivelAgua}% (requiere ${nivelRequerido}%)`,
           icon: emoji,
           tag: `nivel-suficiente-${animal.toLowerCase()}-${Date.now()}`,
           vibrate: [100, 50, 100],

@@ -212,7 +212,7 @@ function App() {
   });
 
   // Componente Card mejorado
-  const Card = ({ titulo, icono, valor, color = '#fff' }) => (
+  const Card = ({ titulo, icono, valor, color = '#fff', subtitulo = null }) => (
     <div 
       className="sensor-card"
       style={{ 
@@ -255,10 +255,20 @@ function App() {
         fontSize: '1.8em', 
         fontWeight: '700', 
         color,
-        textShadow: `0 2px 8px ${color}40`
+        textShadow: `0 2px 8px ${color}40`,
+        marginBottom: subtitulo ? '5px' : '0'
       }}>
         {valor}
       </div>
+      {subtitulo && (
+        <div style={{ 
+          fontSize: '0.7em', 
+          color: '#888',
+          marginTop: '5px'
+        }}>
+          {subtitulo}
+        </div>
+      )}
     </div>
   );
 
@@ -450,8 +460,30 @@ function App() {
             <Card 
               titulo="Detección" 
               icono={<PawPrint color="#DA70D6" size={28}/>} 
-              valor={datos.sensores.ultimo_animal}
-              color="#DA70D6"
+              valor={
+                datos.sensores.ultimo_animal !== 'Ninguno' 
+                  ? `${datos.sensores.ultimo_animal === 'Gato' ? '🐱' : '🐶'} ${datos.sensores.ultimo_animal}`
+                  : datos.sensores.ultimo_animal
+              }
+              color={
+                datos.sensores.ultimo_animal !== 'Ninguno'
+                  ? (() => {
+                      const nivelRequerido = datos.sensores.ultimo_animal === 'Gato' ? 30 : 70;
+                      return datos.sensores.nivel_agua >= nivelRequerido ? '#4CAF50' : '#FF9800';
+                    })()
+                  : '#DA70D6'
+              }
+              subtitulo={
+                datos.sensores.ultimo_animal !== 'Ninguno'
+                  ? (() => {
+                      const nivelRequerido = datos.sensores.ultimo_animal === 'Gato' ? 30 : 70;
+                      const suficiente = datos.sensores.nivel_agua >= nivelRequerido;
+                      return suficiente 
+                        ? `✅ Agua suficiente (${datos.sensores.nivel_agua}% ≥ ${nivelRequerido}%)`
+                        : `⚠️ Agua insuficiente (${datos.sensores.nivel_agua}% < ${nivelRequerido}%)`;
+                    })()
+                  : null
+              }
             />
             {/* Estado Real Bomba */}
             <Card 
