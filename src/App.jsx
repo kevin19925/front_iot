@@ -14,16 +14,13 @@ function App() {
       nivel_agua: 0,
       temperatura: 0,
       bomba_estado_real: false,
-      luz_estado_real: false,
       luz: 0,
       ultimo_animal: "Cargando..."
     },
     control: { 
       modo: "AUTO",
       modo_bomba: "AUTO", 
-      modo_luz: "AUTO",
-      forzar_bomba: false,
-      forzar_luz: false
+      modo_luz: "AUTO" 
     },
     ultima_actualizacion: "--"
   });
@@ -36,8 +33,6 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [mostrarBotonInstalar, setMostrarBotonInstalar] = useState(false);
-  const [modoManualBomba, setModoManualBomba] = useState(false);
-  const [modoManualLuz, setModoManualLuz] = useState(false);
 
   // Función para agregar datos al historial
   const agregarAlHistorial = useCallback((nuevosDatos) => {
@@ -91,21 +86,6 @@ function App() {
   useEffect(() => {
     if (datos && notificacionesActivas && datos.sensores) {
       analizarYNotificar(datos);
-    }
-    
-    // Sincronizar estados de modo manual con los datos del servidor
-    if (datos.control) {
-      if (datos.control.modo_bomba === 'AUTO' || datos.control.modo === 'AUTO') {
-        setModoManualBomba(false);
-      } else {
-        setModoManualBomba(true);
-      }
-      
-      if (datos.control.modo_luz === 'AUTO') {
-        setModoManualLuz(false);
-      } else {
-        setModoManualLuz(true);
-      }
     }
   }, [datos, notificacionesActivas]);
 
@@ -449,7 +429,6 @@ function App() {
               valor={datos.sensores.ultimo_animal}
               color="#DA70D6"
             />
-            
             {/* Estado Real Bomba */}
             <Card 
               titulo="Estado Bomba" 
@@ -457,17 +436,16 @@ function App() {
               valor={datos.sensores.bomba_estado_real ? "ON" : "OFF"}
               color={datos.sensores.bomba_estado_real ? "#00FF00" : "#FF5555"}
             />
-            
-            {/* Estado Real Luz */}
+            {/* Estado Real Luz (basado en modo) */}
             <Card 
               titulo="Estado Luz" 
-              icono={<Lightbulb color={datos.sensores.luz_estado_real ? "#FFD700" : "#666"} size={28}/>} 
-              valor={datos.sensores.luz_estado_real ? "ON" : "OFF"}
-              color={datos.sensores.luz_estado_real ? "#FFD700" : "#666"}
+              icono={<Lightbulb color={datos.control.modo_luz === 'MANUAL_ON' ? "#FFD700" : "#666"} size={28}/>} 
+              valor={datos.control.modo_luz === 'MANUAL_ON' ? "ON" : datos.control.modo_luz === 'MANUAL_OFF' ? "OFF" : "AUTO"}
+              color={datos.control.modo_luz === 'MANUAL_ON' ? "#FFD700" : datos.control.modo_luz === 'MANUAL_OFF' ? "#666" : "#1565C0"}
             />
           </div>
 
-          {/* --- PANELES DE CONTROL MEJORADOS --- */}
+          {/* --- PANELES DE CONTROL --- */}
           <div style={{ 
             maxWidth: '800px', 
             margin: '0 auto', 
@@ -477,7 +455,7 @@ function App() {
             marginBottom: '30px'
           }}>
             
-            {/* PANEL BOMBA - Con Menú Desplegable */}
+            {/* PANEL BOMBA */}
             <div style={{ 
               background: 'linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(25, 25, 25, 0.95) 100%)',
               backdropFilter: 'blur(10px)',
@@ -500,12 +478,12 @@ function App() {
                 <Droplets size={24} /> BOMBA DE AGUA
               </h3>
               
-              {/* Estado en Tiempo Real */}
+              {/* Estado Real en Tiempo Real */}
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '20px',
+                marginBottom: '15px',
                 padding: '12px',
                 background: 'rgba(0, 0, 0, 0.3)',
                 borderRadius: '8px'
@@ -529,11 +507,10 @@ function App() {
                 </div>
               </div>
 
-              {/* Modo Actual */}
               <p style={{ 
                 color: '#aaa', 
                 fontSize: '0.9em', 
-                marginBottom: '15px',
+                marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -547,19 +524,16 @@ function App() {
                   {datos.control.modo_bomba || datos.control.modo || 'AUTO'}
                 </strong>
               </p>
-
+              
               {/* Si está en AUTO, mostrar solo botón para cambiar a MANUAL */}
-              {(datos.control.modo_bomba === 'AUTO' || datos.control.modo === 'AUTO') && !modoManualBomba ? (
+              {(datos.control.modo_bomba === 'AUTO' || datos.control.modo === 'AUTO') ? (
                 <button 
                   style={{
                     width: '100%',
                     ...btnStyle('#FF9800', false),
                     marginTop: '10px'
                   }}
-                  onClick={() => {
-                    setModoManualBomba(true);
-                    enviarComandoUnificado("BOMBA_ON"); // Cambiar a manual ON
-                  }}
+                  onClick={() => enviarComandoUnificado("BOMBA_ON")}
                   disabled={cargando}
                 >
                   <Power size={18}/> Cambiar a Modo Manual
@@ -595,10 +569,7 @@ function App() {
                       width: '100%',
                       ...btnStyle('#1565C0', false)
                     }}
-                    onClick={() => {
-                      setModoManualBomba(false);
-                      enviarComandoUnificado("BOMBA_AUTO");
-                    }}
+                    onClick={() => enviarComandoUnificado("BOMBA_AUTO")}
                     disabled={cargando}
                   >
                     <RefreshCw size={18}/> Volver a AUTO
@@ -607,7 +578,7 @@ function App() {
               )}
             </div>
 
-            {/* PANEL LUZ - Con Menú Desplegable */}
+            {/* PANEL LUZ */}
             <div style={{ 
               background: 'linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(25, 25, 25, 0.95) 100%)',
               backdropFilter: 'blur(10px)',
@@ -630,12 +601,12 @@ function App() {
                 <Lightbulb size={24} /> ILUMINACIÓN
               </h3>
               
-              {/* Estado en Tiempo Real */}
+              {/* Estado Real en Tiempo Real */}
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '20px',
+                marginBottom: '15px',
                 padding: '12px',
                 background: 'rgba(0, 0, 0, 0.3)',
                 borderRadius: '8px'
@@ -646,24 +617,23 @@ function App() {
                     width: '12px', 
                     height: '12px', 
                     borderRadius: '50%',
-                    backgroundColor: datos.sensores.luz_estado_real ? '#FFD700' : '#666',
-                    boxShadow: datos.sensores.luz_estado_real ? '0 0 10px rgba(255, 215, 0, 0.6)' : 'none',
-                    animation: datos.sensores.luz_estado_real ? 'blink 1s infinite' : 'none'
+                    backgroundColor: datos.control.modo_luz === 'MANUAL_ON' ? '#FFD700' : '#666',
+                    boxShadow: datos.control.modo_luz === 'MANUAL_ON' ? '0 0 10px rgba(255, 215, 0, 0.6)' : 'none',
+                    animation: datos.control.modo_luz === 'MANUAL_ON' ? 'blink 1s infinite' : 'none'
                   }}></span>
                   <strong style={{ 
-                    color: datos.sensores.luz_estado_real ? '#FFD700' : '#666',
+                    color: datos.control.modo_luz === 'MANUAL_ON' ? '#FFD700' : datos.control.modo_luz === 'MANUAL_OFF' ? '#666' : '#1565C0',
                     fontSize: '1.1em'
                   }}>
-                    {datos.sensores.luz_estado_real ? 'ENCENDIDA' : 'APAGADA'}
+                    {datos.control.modo_luz === 'MANUAL_ON' ? 'ENCENDIDA' : datos.control.modo_luz === 'MANUAL_OFF' ? 'APAGADA' : 'AUTO'}
                   </strong>
                 </div>
               </div>
 
-              {/* Modo Actual */}
               <p style={{ 
                 color: '#aaa', 
                 fontSize: '0.9em', 
-                marginBottom: '15px',
+                marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -677,19 +647,16 @@ function App() {
                   {datos.control.modo_luz || 'AUTO'}
                 </strong>
               </p>
-
+              
               {/* Si está en AUTO, mostrar solo botón para cambiar a MANUAL */}
-              {datos.control.modo_luz === 'AUTO' && !modoManualLuz ? (
+              {datos.control.modo_luz === 'AUTO' ? (
                 <button 
                   style={{
                     width: '100%',
                     ...btnStyle('#FF9800', false),
                     marginTop: '10px'
                   }}
-                  onClick={() => {
-                    setModoManualLuz(true);
-                    enviarComandoUnificado("LUZ_ON"); // Cambiar a manual ON
-                  }}
+                  onClick={() => enviarComandoUnificado("LUZ_ON")}
                   disabled={cargando}
                 >
                   <Lightbulb size={18}/> Cambiar a Modo Manual
@@ -725,10 +692,7 @@ function App() {
                       width: '100%',
                       ...btnStyle('#1565C0', false)
                     }}
-                    onClick={() => {
-                      setModoManualLuz(false);
-                      enviarComandoUnificado("LUZ_AUTO");
-                    }}
+                    onClick={() => enviarComandoUnificado("LUZ_AUTO")}
                     disabled={cargando}
                   >
                     <RefreshCw size={18}/> Volver a AUTO
