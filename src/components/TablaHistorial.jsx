@@ -12,10 +12,48 @@ const TablaHistorial = ({ historial }) => {
   const [filtroEvento, setFiltroEvento] = useState('todos');
   const [filtroBomba, setFiltroBomba] = useState('todos');
   const [filtroTiempo, setFiltroTiempo] = useState('todos'); // Filtro por tiempo (horas/minutos)
+  const [filtroHoraManual, setFiltroHoraManual] = useState(''); // Filtro por hora manual (HH:mm)
   const [busqueda, setBusqueda] = useState('');
   const [ordenarPor, setOrdenarPor] = useState('fechaHora'); // 'fechaHora' o 'nivel' o 'temperatura'
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 20;
+
+  // Generar 100 horas predefinidas (horas del día de hoy)
+  const horasPredefinidas = useMemo(() => {
+    const horas = [];
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Inicio del día
+    
+    // Generar horas cada 15 minutos durante 24 horas = 96 horas
+    for (let i = 0; i < 96; i++) {
+      const hora = new Date(hoy.getTime() + (i * 15 * 60 * 1000));
+      const horaStr = hora.toLocaleTimeString('es-ES', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+      horas.push({
+        value: horaStr,
+        label: horaStr
+      });
+    }
+    
+    // Agregar 4 horas más para llegar a 100
+    for (let i = 96; i < 100; i++) {
+      const hora = new Date(hoy.getTime() + (i * 15 * 60 * 1000));
+      const horaStr = hora.toLocaleTimeString('es-ES', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+      horas.push({
+        value: horaStr,
+        label: horaStr
+      });
+    }
+    
+    return horas;
+  }, []);
 
   // Calcular litros desde porcentaje
   const calcularLitros = (porcentaje) => {
@@ -26,8 +64,34 @@ const TablaHistorial = ({ historial }) => {
   const datosFiltrados = useMemo(() => {
     let filtrados = [...historial];
 
-    // Filtro por tiempo (horas y minutos)
-    if (filtroTiempo !== 'todos') {
+    // Filtrar solo gatos y perros del día de hoy
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const mañana = new Date(hoy);
+    mañana.setDate(mañana.getDate() + 1);
+    
+    filtrados = filtrados.filter(item => {
+      if (!item.fechaHora) return false;
+      const fechaItem = new Date(item.fechaHora);
+      // Solo registros de hoy
+      const esHoy = fechaItem >= hoy && fechaItem < mañana;
+      // Solo registros con gato o perro
+      const tieneAnimal = item.evento === 'Gato' || item.evento === 'Perro';
+      return esHoy && tieneAnimal;
+    });
+
+    // Filtro por hora manual
+    if (filtroHoraManual) {
+      filtrados = filtrados.filter(item => {
+        if (!item.hora) return false;
+        // Comparar solo hora:minuto (sin segundos)
+        const horaItem = item.hora.substring(0, 5); // "HH:mm"
+        return horaItem === filtroHoraManual;
+      });
+    }
+
+    // Filtro por tiempo (horas y minutos) - solo si no hay filtro manual
+    if (filtroTiempo !== 'todos' && !filtroHoraManual) {
       const ahora = new Date();
       let minutosAtras = 0;
       
@@ -104,7 +168,7 @@ const TablaHistorial = ({ historial }) => {
     });
 
     return filtrados;
-  }, [historial, filtroEvento, filtroBomba, filtroTiempo, busqueda, ordenarPor]);
+  }, [historial, filtroEvento, filtroBomba, filtroTiempo, filtroHoraManual, busqueda, ordenarPor]);
 
   // Calcular paginación
   const totalPaginas = Math.ceil(datosFiltrados.length / registrosPorPagina);
@@ -115,7 +179,7 @@ const TablaHistorial = ({ historial }) => {
   // Resetear a página 1 cuando cambian los filtros
   useEffect(() => {
     setPaginaActual(1);
-  }, [filtroEvento, filtroBomba, filtroTiempo, busqueda, ordenarPor]);
+  }, [filtroEvento, filtroBomba, filtroTiempo, filtroHoraManual, busqueda, ordenarPor]);
 
   if (!historial || historial.length === 0) {
     return (
@@ -179,9 +243,37 @@ const TablaHistorial = ({ historial }) => {
         <div className="filtro-grupo">
           <label>
             <Clock size={16} />
+            <input
+              type="time"
+              value={filtroHoraManual}
+              onChange={(e) => {
+                setFiltroHoraManual(e.target.value);
+                setFiltroTiempo('todos'); // Resetear filtro de tiempo cuando se usa hora manual
+              }}
+              className="filtro-input"
+              placeholder="Hora manual (HH:mm)"
+              style={{
+                width: '100%',
+                padding: '8px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: '#fff',
+                fontSize: '0.9em'
+              }}
+            />
+          </label>
+        </div>
+
+        <div className="filtro-grupo">
+          <label>
+            <Clock size={16} />
             <select
               value={filtroTiempo}
-              onChange={(e) => setFiltroTiempo(e.target.value)}
+              onChange={(e) => {
+                setFiltroTiempo(e.target.value);
+                setFiltroHoraManual(''); // Resetear hora manual cuando se usa filtro de tiempo
+              }}
               className="filtro-select"
             >
               <option value="todos">Todo el tiempo</option>
@@ -192,6 +284,31 @@ const TablaHistorial = ({ historial }) => {
               <option value="6h">Últimas 6 horas</option>
               <option value="12h">Últimas 12 horas</option>
               <option value="24h">Últimas 24 horas</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="filtro-grupo" style={{ gridColumn: '1 / -1' }}>
+          <label style={{ width: '100%' }}>
+            <Clock size={16} />
+            <span style={{ color: '#aaa', fontSize: '0.85em', marginRight: '10px' }}>
+              Horas predefinidas (100 horas del día):
+            </span>
+            <select
+              value={filtroHoraManual}
+              onChange={(e) => {
+                setFiltroHoraManual(e.target.value);
+                setFiltroTiempo('todos');
+              }}
+              className="filtro-select"
+              style={{ width: '100%', maxWidth: '200px' }}
+            >
+              <option value="">Seleccionar hora...</option>
+              {horasPredefinidas.map((hora, index) => (
+                <option key={index} value={hora.value}>
+                  {hora.label}
+                </option>
+              ))}
             </select>
           </label>
         </div>
