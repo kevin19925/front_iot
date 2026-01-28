@@ -27,16 +27,16 @@ function App() {
     ultima_actualizacion: "--"
   });
 
-  // Generar 100 datos quemados de ejemplo desde 8:00 AM hasta 9:53 AM del 28/01/2026
+  // Generar 200 datos quemados de ejemplo desde 8:30 AM hasta 10:00 AM del 28/01/2026
   const generarDatosQuemados = () => {
     const datos = [];
-    const fechaBase = new Date('2026-01-28T08:00:00');
+    const fechaBase = new Date('2026-01-28T08:30:00'); // Inicio a las 8:30 AM
     const animales = ['Gato', 'Perro', 'Ninguno'];
     
-    for (let i = 0; i < 100; i++) {
-      // Distribuir uniformemente entre 8:00 y 9:53 (113 minutos = 6780 segundos)
-      // Dividir en 100 partes iguales
-      const segundosAgregar = Math.floor((i / 99) * 113 * 60);
+    for (let i = 0; i < 200; i++) {
+      // Distribuir uniformemente entre 8:30 y 10:00 (90 minutos = 5400 segundos)
+      // Dividir en 200 partes iguales
+      const segundosAgregar = Math.floor((i / 199) * 90 * 60);
       const fechaRegistro = new Date(fechaBase.getTime() + (segundosAgregar * 1000));
       
       // Alternar entre gato y perro más frecuentemente, algunos sin animal
