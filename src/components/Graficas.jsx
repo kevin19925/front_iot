@@ -13,24 +13,31 @@ const Graficas = ({ historial, datosActuales, filtroAnimal = 'general' }) => {
   // Función para calcular litros
   const calcularLitros = (porcentaje) => (VOLUMEN_TOTAL_LITROS * porcentaje) / 100;
 
-  // Filtrar historial según el animal seleccionado
+  // Filtrar historial según el animal seleccionado (solo gatos y perros del historial)
   const historialFiltrado = useMemo(() => {
-    if (filtroAnimal === 'general') {
-      return historial;
-    } else if (filtroAnimal === 'gato') {
-      return historial.filter(item => item.evento === 'Gato');
+    // Primero filtrar solo registros con gatos y perros
+    let filtrado = historial.filter(item => 
+      item.evento === 'Gato' || item.evento === 'Perro'
+    );
+    
+    // Luego aplicar filtro por animal específico
+    if (filtroAnimal === 'gato') {
+      filtrado = filtrado.filter(item => item.evento === 'Gato');
     } else if (filtroAnimal === 'perro') {
-      return historial.filter(item => item.evento === 'Perro');
+      filtrado = filtrado.filter(item => item.evento === 'Perro');
     }
-    return historial;
+    // Si es 'general', mostrar todos los registros con animales
+    
+    return filtrado;
   }, [historial, filtroAnimal]);
 
-  // Preparar datos para las gráficas (últimos 20 registros del historial filtrado)
-  const datosGrafica = historialFiltrado.slice(0, 20).reverse().map((item, index) => ({
+  // Preparar datos para las gráficas (últimos 50 registros del historial filtrado para más datos)
+  const datosGrafica = historialFiltrado.slice(0, 50).reverse().map((item, index) => ({
     tiempo: item.hora || `${index}`,
     nivel: item.nivel || 0,
     litros: calcularLitros(item.nivel || 0),
     temperatura: item.temperatura || 0,
+    fecha: item.fecha || '',
   }));
 
   // Datos para gráfica circular (estado actual)

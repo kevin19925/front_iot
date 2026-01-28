@@ -27,20 +27,25 @@ function App() {
     ultima_actualizacion: "--"
   });
 
-  // Generar 200 datos quemados de ejemplo desde 8:30 AM hasta 10:00 AM del 28/01/2026
+  // Generar 300 datos quemados desde 8:50 AM hasta 10:12 AM solo de hoy (28/01/2026)
   const generarDatosQuemados = () => {
     const datos = [];
-    const fechaBase = new Date('2026-01-28T08:30:00'); // Inicio a las 8:30 AM
     const animales = ['Gato', 'Perro', 'Ninguno'];
     
-    for (let i = 0; i < 200; i++) {
-      // Distribuir uniformemente entre 8:30 y 10:00 (90 minutos = 5400 segundos)
-      // Dividir en 200 partes iguales
-      const segundosAgregar = Math.floor((i / 199) * 90 * 60);
+    // Solo datos de hoy: 28 de enero 2026
+    const fechaBase = new Date('2026-01-28T08:50:00'); // Inicio a las 8:50 AM
+    const horaFin = new Date('2026-01-28T10:12:00'); // Fin a las 10:12 AM
+    
+    // Calcular minutos totales: desde 8:50 hasta 10:12 = 82 minutos
+    const minutosTotales = (10 - 8) * 60 + (12 - 50); // 82 minutos
+    
+    // Generar 300 registros distribuidos uniformemente
+    for (let i = 0; i < 300; i++) {
+      const segundosAgregar = Math.floor((i / 299) * minutosTotales * 60);
       const fechaRegistro = new Date(fechaBase.getTime() + (segundosAgregar * 1000));
       
-      // Alternar entre gato y perro más frecuentemente, algunos sin animal
-      const indiceAnimal = i < 70 ? (i % 2 === 0 ? 0 : 1) : 2; // 70% con animales, 30% sin
+      // 70% con animales (alternando gato y perro), 30% sin animal
+      const indiceAnimal = i < 210 ? (i % 2 === 0 ? 0 : 1) : 2;
       const animal = animales[indiceAnimal];
       
       const fecha = fechaRegistro.toLocaleDateString('es-ES', {
@@ -54,10 +59,27 @@ function App() {
         second: '2-digit'
       });
       
-      // Generar valores realistas
-      const nivelAgua = Math.floor(Math.random() * 100);
-      const temperatura = 20 + Math.random() * 15; // Entre 20 y 35°C
-      const bomba = nivelAgua < 30 && Math.random() > 0.5; // Bomba activa si nivel bajo
+      // Valores más realistas según el animal
+      let nivelAgua;
+      if (animal === 'Gato') {
+        nivelAgua = 30 + Math.floor(Math.random() * 50); // Gatos: 30-80%
+      } else if (animal === 'Perro') {
+        nivelAgua = 50 + Math.floor(Math.random() * 50); // Perros: 50-100%
+      } else {
+        nivelAgua = Math.floor(Math.random() * 100);
+      }
+      
+      // Temperatura más variada según hora del día
+      const horaNum = fechaRegistro.getHours();
+      let temperatura;
+      if (horaNum >= 8 && horaNum < 10) {
+        temperatura = 22 + Math.random() * 8; // Mañana: 22-30°C
+      } else {
+        temperatura = 20 + Math.random() * 15; // Resto: 20-35°C
+      }
+      
+      // Bomba más realista
+      const bomba = nivelAgua < 25 || (animal !== 'Ninguno' && nivelAgua < (animal === 'Gato' ? 30 : 70));
       
       datos.push({
         fecha: fecha,

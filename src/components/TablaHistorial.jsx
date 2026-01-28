@@ -11,12 +11,24 @@ const VOLUMEN_TOTAL_LITROS = (ALTURA_RECIPIENTE * ANCHO_RECIPIENTE * LARGO_RECIP
 const TablaHistorial = ({ historial }) => {
   const [filtroEvento, setFiltroEvento] = useState('todos');
   const [filtroBomba, setFiltroBomba] = useState('todos');
+  const [filtroFecha, setFiltroFecha] = useState(''); // Filtro por fecha
   const [filtroHoraDesde, setFiltroHoraDesde] = useState(''); // Filtro hora desde
   const [filtroHoraHasta, setFiltroHoraHasta] = useState(''); // Filtro hora hasta
   const [busqueda, setBusqueda] = useState('');
   const [ordenarPor, setOrdenarPor] = useState('fechaHora'); // 'fechaHora' o 'nivel' o 'temperatura'
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 20;
+
+  // Obtener fechas únicas del historial
+  const fechasDisponibles = useMemo(() => {
+    const fechas = new Set();
+    historial.forEach(item => {
+      if (item.fecha) {
+        fechas.add(item.fecha);
+      }
+    });
+    return Array.from(fechas).sort().reverse(); // Más recientes primero
+  }, [historial]);
 
   // Generar horas predefinidas desde 8:30 AM hasta 10:00 AM (cada minuto)
   const horasPredefinidas = useMemo(() => {
@@ -49,21 +61,16 @@ const TablaHistorial = ({ historial }) => {
   const datosFiltrados = useMemo(() => {
     let filtrados = [...historial];
 
-    // Filtrar solo gatos y perros del día de hoy
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const mañana = new Date(hoy);
-    mañana.setDate(mañana.getDate() + 1);
-    
+    // Filtrar solo gatos y perros
     filtrados = filtrados.filter(item => {
-      if (!item.fechaHora) return false;
-      const fechaItem = new Date(item.fechaHora);
-      // Solo registros de hoy
-      const esHoy = fechaItem >= hoy && fechaItem < mañana;
-      // Solo registros con gato o perro
       const tieneAnimal = item.evento === 'Gato' || item.evento === 'Perro';
-      return esHoy && tieneAnimal;
+      return tieneAnimal;
     });
+
+    // Filtro por fecha
+    if (filtroFecha) {
+      filtrados = filtrados.filter(item => item.fecha === filtroFecha);
+    }
 
     // Filtro por rango de horas (desde - hasta)
     if (filtroHoraDesde || filtroHoraHasta) {
@@ -122,7 +129,7 @@ const TablaHistorial = ({ historial }) => {
     });
 
     return filtrados;
-  }, [historial, filtroEvento, filtroBomba, filtroHoraDesde, filtroHoraHasta, busqueda, ordenarPor]);
+  }, [historial, filtroEvento, filtroBomba, filtroFecha, filtroHoraDesde, filtroHoraHasta, busqueda, ordenarPor]);
 
   // Calcular paginación
   const totalPaginas = Math.ceil(datosFiltrados.length / registrosPorPagina);
@@ -133,7 +140,7 @@ const TablaHistorial = ({ historial }) => {
   // Resetear a página 1 cuando cambian los filtros
   useEffect(() => {
     setPaginaActual(1);
-  }, [filtroEvento, filtroBomba, filtroHoraDesde, filtroHoraHasta, busqueda, ordenarPor]);
+  }, [filtroEvento, filtroBomba, filtroFecha, filtroHoraDesde, filtroHoraHasta, busqueda, ordenarPor]);
 
   if (!historial || historial.length === 0) {
     return (
@@ -160,6 +167,24 @@ const TablaHistorial = ({ historial }) => {
               onChange={(e) => setBusqueda(e.target.value)}
               className="filtro-input"
             />
+          </label>
+        </div>
+
+        <div className="filtro-grupo">
+          <label>
+            <Calendar size={16} />
+            <select
+              value={filtroFecha}
+              onChange={(e) => setFiltroFecha(e.target.value)}
+              className="filtro-select"
+            >
+              <option value="">Todas las fechas</option>
+              {fechasDisponibles.map((fecha, index) => (
+                <option key={index} value={fecha}>
+                  {fecha}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
 
