@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Droplets, Thermometer, Lightbulb } from 'lucide-react';
 import './Graficas.css';
@@ -9,12 +9,24 @@ const ANCHO_RECIPIENTE = 19.75;
 const LARGO_RECIPIENTE = 25;
 const VOLUMEN_TOTAL_LITROS = (ALTURA_RECIPIENTE * ANCHO_RECIPIENTE * LARGO_RECIPIENTE) / 1000;
 
-const Graficas = ({ historial, datosActuales }) => {
+const Graficas = ({ historial, datosActuales, filtroAnimal = 'general' }) => {
   // Función para calcular litros
   const calcularLitros = (porcentaje) => (VOLUMEN_TOTAL_LITROS * porcentaje) / 100;
 
-  // Preparar datos para las gráficas (últimos 20 registros)
-  const datosGrafica = historial.slice(0, 20).reverse().map((item, index) => ({
+  // Filtrar historial según el animal seleccionado
+  const historialFiltrado = useMemo(() => {
+    if (filtroAnimal === 'general') {
+      return historial;
+    } else if (filtroAnimal === 'gato') {
+      return historial.filter(item => item.evento === 'Gato');
+    } else if (filtroAnimal === 'perro') {
+      return historial.filter(item => item.evento === 'Perro');
+    }
+    return historial;
+  }, [historial, filtroAnimal]);
+
+  // Preparar datos para las gráficas (últimos 20 registros del historial filtrado)
+  const datosGrafica = historialFiltrado.slice(0, 20).reverse().map((item, index) => ({
     tiempo: item.hora || `${index}`,
     nivel: item.nivel || 0,
     litros: calcularLitros(item.nivel || 0),

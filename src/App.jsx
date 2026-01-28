@@ -33,6 +33,7 @@ function App() {
   const [conectado, setConectado] = useState(false);
   const [notificacionesActivas, setNotificacionesActivas] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [filtroAnimal, setFiltroAnimal] = useState('general'); // 'general', 'gato', 'perro'
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [mostrarBotonInstalar, setMostrarBotonInstalar] = useState(false);
 
@@ -64,7 +65,29 @@ function App() {
 
     setHistorial((prev) => {
       const nuevoHistorial = [registro, ...prev];
-      return nuevoHistorial.slice(0, 50); // Aumentar a 50 registros
+      
+      // Separar registros con animales detectados y sin animales
+      const conAnimales = nuevoHistorial.filter(item => 
+        item.evento === 'Gato' || item.evento === 'Perro'
+      );
+      const sinAnimales = nuevoHistorial.filter(item => 
+        item.evento !== 'Gato' && item.evento !== 'Perro'
+      );
+      
+      // Mantener todos los registros con animales + hasta 1000 registros totales
+      // Si hay muchos registros con animales, mantenerlos todos y limitar los sin animales
+      const limiteSinAnimales = Math.max(0, 1000 - conAnimales.length);
+      const sinAnimalesLimitados = sinAnimales.slice(0, limiteSinAnimales);
+      
+      // Combinar: primero los registros con animales, luego los sin animales limitados
+      const historialFinal = [...conAnimales, ...sinAnimalesLimitados];
+      
+      // Ordenar por fecha más reciente primero
+      historialFinal.sort((a, b) => {
+        return new Date(b.fechaHora) - new Date(a.fechaHora);
+      });
+      
+      return historialFinal;
     });
   }, []);
 
@@ -772,7 +795,84 @@ function App() {
       )}
 
       {activeTab === 'graficas' && (
-        <Graficas historial={historial} datosActuales={datos} />
+        <>
+          {/* Botones de Filtro por Animal */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '15px', 
+            justifyContent: 'center',
+            marginBottom: '30px',
+            flexWrap: 'wrap'
+          }}>
+            <button
+              onClick={() => setFiltroAnimal('general')}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                fontSize: '1em',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                background: filtroAnimal === 'general' 
+                  ? 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)'
+                  : 'linear-gradient(135deg, #444 0%, #333 100%)',
+                color: '#fff',
+                boxShadow: filtroAnimal === 'general' 
+                  ? '0 4px 15px rgba(76, 175, 80, 0.4)' 
+                  : '0 2px 8px rgba(0, 0, 0, 0.3)',
+                transform: filtroAnimal === 'general' ? 'scale(1.05)' : 'scale(1)',
+              }}
+            >
+              📊 Generales
+            </button>
+            <button
+              onClick={() => setFiltroAnimal('gato')}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                fontSize: '1em',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                background: filtroAnimal === 'gato' 
+                  ? 'linear-gradient(135deg, #DA70D6 0%, #BA55D3 100%)'
+                  : 'linear-gradient(135deg, #444 0%, #333 100%)',
+                color: '#fff',
+                boxShadow: filtroAnimal === 'gato' 
+                  ? '0 4px 15px rgba(218, 112, 214, 0.4)' 
+                  : '0 2px 8px rgba(0, 0, 0, 0.3)',
+                transform: filtroAnimal === 'gato' ? 'scale(1.05)' : 'scale(1)',
+              }}
+            >
+              🐱 Gato
+            </button>
+            <button
+              onClick={() => setFiltroAnimal('perro')}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                fontSize: '1em',
+                fontWeight: '700',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                background: filtroAnimal === 'perro' 
+                  ? 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)'
+                  : 'linear-gradient(135deg, #444 0%, #333 100%)',
+                color: '#fff',
+                boxShadow: filtroAnimal === 'perro' 
+                  ? '0 4px 15px rgba(255, 152, 0, 0.4)' 
+                  : '0 2px 8px rgba(0, 0, 0, 0.3)',
+                transform: filtroAnimal === 'perro' ? 'scale(1.05)' : 'scale(1)',
+              }}
+            >
+              🐶 Perro
+            </button>
+          </div>
+          <Graficas historial={historial} datosActuales={datos} filtroAnimal={filtroAnimal} />
+        </>
       )}
 
       {activeTab === 'historial' && (

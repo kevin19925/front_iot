@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Filter, Search, Calendar, Droplets, Thermometer, Power, PawPrint } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Filter, Search, Calendar, Droplets, Thermometer, Power, PawPrint, Clock } from 'lucide-react';
 import './TablaHistorial.css';
 
 // Dimensiones del recipiente para calcular litros
@@ -11,8 +11,11 @@ const VOLUMEN_TOTAL_LITROS = (ALTURA_RECIPIENTE * ANCHO_RECIPIENTE * LARGO_RECIP
 const TablaHistorial = ({ historial }) => {
   const [filtroEvento, setFiltroEvento] = useState('todos');
   const [filtroBomba, setFiltroBomba] = useState('todos');
+  const [filtroTiempo, setFiltroTiempo] = useState('todos'); // Filtro por tiempo (horas/minutos)
   const [busqueda, setBusqueda] = useState('');
   const [ordenarPor, setOrdenarPor] = useState('fechaHora'); // 'fechaHora' o 'nivel' o 'temperatura'
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 20;
 
   // Calcular litros desde porcentaje
   const calcularLitros = (porcentaje) => {
@@ -22,6 +25,47 @@ const TablaHistorial = ({ historial }) => {
   // Filtrar y ordenar datos
   const datosFiltrados = useMemo(() => {
     let filtrados = [...historial];
+
+    // Filtro por tiempo (horas y minutos)
+    if (filtroTiempo !== 'todos') {
+      const ahora = new Date();
+      let minutosAtras = 0;
+      
+      switch (filtroTiempo) {
+        case '15m':
+          minutosAtras = 15;
+          break;
+        case '30m':
+          minutosAtras = 30;
+          break;
+        case '1h':
+          minutosAtras = 60;
+          break;
+        case '3h':
+          minutosAtras = 180;
+          break;
+        case '6h':
+          minutosAtras = 360;
+          break;
+        case '12h':
+          minutosAtras = 720;
+          break;
+        case '24h':
+          minutosAtras = 1440;
+          break;
+        default:
+          minutosAtras = 0;
+      }
+      
+      if (minutosAtras > 0) {
+        const fechaLimite = new Date(ahora.getTime() - (minutosAtras * 60 * 1000));
+        filtrados = filtrados.filter(item => {
+          if (!item.fechaHora) return false;
+          const fechaItem = new Date(item.fechaHora);
+          return fechaItem >= fechaLimite;
+        });
+      }
+    }
 
     // Filtro por evento
     if (filtroEvento !== 'todos') {
@@ -60,7 +104,18 @@ const TablaHistorial = ({ historial }) => {
     });
 
     return filtrados;
-  }, [historial, filtroEvento, filtroBomba, busqueda, ordenarPor]);
+  }, [historial, filtroEvento, filtroBomba, filtroTiempo, busqueda, ordenarPor]);
+
+  // Calcular paginación
+  const totalPaginas = Math.ceil(datosFiltrados.length / registrosPorPagina);
+  const inicio = (paginaActual - 1) * registrosPorPagina;
+  const fin = inicio + registrosPorPagina;
+  const datosPaginados = datosFiltrados.slice(inicio, fin);
+
+  // Resetear a página 1 cuando cambian los filtros
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [filtroEvento, filtroBomba, filtroTiempo, busqueda, ordenarPor]);
 
   if (!historial || historial.length === 0) {
     return (
@@ -123,6 +178,26 @@ const TablaHistorial = ({ historial }) => {
 
         <div className="filtro-grupo">
           <label>
+            <Clock size={16} />
+            <select
+              value={filtroTiempo}
+              onChange={(e) => setFiltroTiempo(e.target.value)}
+              className="filtro-select"
+            >
+              <option value="todos">Todo el tiempo</option>
+              <option value="15m">Últimos 15 minutos</option>
+              <option value="30m">Últimos 30 minutos</option>
+              <option value="1h">Última hora</option>
+              <option value="3h">Últimas 3 horas</option>
+              <option value="6h">Últimas 6 horas</option>
+              <option value="12h">Últimas 12 horas</option>
+              <option value="24h">Últimas 24 horas</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="filtro-grupo">
+          <label>
             <Filter size={16} />
             <select
               value={ordenarPor}
@@ -166,14 +241,14 @@ const TablaHistorial = ({ historial }) => {
             </tr>
           </thead>
           <tbody>
-            {datosFiltrados.length === 0 ? (
+            {datosPaginados.length === 0 ? (
               <tr>
                 <td colSpan="7" className="sin-resultados">
                   No se encontraron registros con los filtros aplicados
                 </td>
               </tr>
             ) : (
-              datosFiltrados.map((item, index) => (
+              datosPaginados.map((item, index) => (
                 <tr key={index} className={index === 0 ? 'fila-nueva' : ''}>
                   <td className="fecha-cell">{item.fecha || '--'}</td>
                   <td className="hora-cell">{item.hora || '--'}</td>
@@ -209,9 +284,58 @@ const TablaHistorial = ({ historial }) => {
         </table>
       </div>
 
+      {/* Paginación */}
+      {totalPaginas > 1 && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '10px',
+          marginTop: '20px',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => setPaginaActual(prev => Math.max(1, prev - 1))}
+            disabled={paginaActual === 1}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: paginaActual === 1 ? '#333' : '#4CAF50',
+              color: '#fff',
+              cursor: paginaActual === 1 ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              opacity: paginaActual === 1 ? 0.5 : 1
+            }}
+          >
+            ← Anterior
+          </button>
+          <span style={{ color: '#aaa', fontSize: '0.9em' }}>
+            Página {paginaActual} de {totalPaginas}
+          </span>
+          <button
+            onClick={() => setPaginaActual(prev => Math.min(totalPaginas, prev + 1))}
+            disabled={paginaActual === totalPaginas}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              background: paginaActual === totalPaginas ? '#333' : '#4CAF50',
+              color: '#fff',
+              cursor: paginaActual === totalPaginas ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              opacity: paginaActual === totalPaginas ? 0.5 : 1
+            }}
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
+
       <p className="tabla-info">
-        Mostrando {datosFiltrados.length} de {historial.length} registros
+        Mostrando {inicio + 1}-{Math.min(fin, datosFiltrados.length)} de {datosFiltrados.length} registros
         {datosFiltrados.length !== historial.length && ' (filtrados)'}
+        {historial.length >= 1000 && ` | Total almacenados: ${historial.length}`}
       </p>
     </div>
   );
