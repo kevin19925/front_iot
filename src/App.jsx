@@ -27,7 +27,54 @@ function App() {
     ultima_actualizacion: "--"
   });
 
-  const [historial, setHistorial] = useState([]);
+  // Generar 100 datos quemados de ejemplo desde 8:00 AM hasta 9:53 AM del 28/01/2026
+  const generarDatosQuemados = () => {
+    const datos = [];
+    const fechaBase = new Date('2026-01-28T08:00:00');
+    const animales = ['Gato', 'Perro', 'Ninguno'];
+    
+    for (let i = 0; i < 100; i++) {
+      // Distribuir uniformemente entre 8:00 y 9:53 (113 minutos = 6780 segundos)
+      // Dividir en 100 partes iguales
+      const segundosAgregar = Math.floor((i / 99) * 113 * 60);
+      const fechaRegistro = new Date(fechaBase.getTime() + (segundosAgregar * 1000));
+      
+      // Alternar entre gato y perro más frecuentemente, algunos sin animal
+      const indiceAnimal = i < 70 ? (i % 2 === 0 ? 0 : 1) : 2; // 70% con animales, 30% sin
+      const animal = animales[indiceAnimal];
+      
+      const fecha = fechaRegistro.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      const hora = fechaRegistro.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      
+      // Generar valores realistas
+      const nivelAgua = Math.floor(Math.random() * 100);
+      const temperatura = 20 + Math.random() * 15; // Entre 20 y 35°C
+      const bomba = nivelAgua < 30 && Math.random() > 0.5; // Bomba activa si nivel bajo
+      
+      datos.push({
+        fecha: fecha,
+        hora: hora,
+        fechaHora: fechaRegistro.toISOString(),
+        nivel: nivelAgua,
+        temperatura: parseFloat(temperatura.toFixed(1)),
+        bomba: bomba,
+        evento: animal,
+      });
+    }
+    
+    // Ordenar por fecha más reciente primero
+    return datos.sort((a, b) => new Date(b.fechaHora) - new Date(a.fechaHora));
+  };
+
+  const [historial, setHistorial] = useState(generarDatosQuemados());
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const [conectado, setConectado] = useState(false);
